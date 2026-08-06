@@ -1,0 +1,38 @@
+:root{
+  --glass-bg: rgba(255,255,255,0.04);
+  --panel-border: rgba(255,255,255,0.06);
+  --accent: #00eaff;
+  --accent-2: #7c5cff;
+  --shadow-glow: 0 8px 30px rgba(124,92,255,0.12);
+}
+
+.sim-root{ background: linear-gradient(180deg, #030417 0%, #071127 60%); color: #e6eef6; min-height:100vh }
+
+.panel-glass{
+  background: var(--glass-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px) saturate(120%);
+  box-shadow: var(--shadow-glow);
+  border-radius: 12px;
+}
+
+.top-toolbar{ padding: 12px; display:flex; gap:8px; align-items:center }
+
+.asset-browser{ width: 260px; min-width:200px; max-width:360px; overflow:auto }
+
+.sim-canvas-wrap{ flex:1; display:flex; align-items:stretch; justify-content:center; padding:12px }
+
+.properties-panel{ width:320px; min-width:220px }
+
+.btn-primary{ background: linear-gradient(90deg,var(--accent-2),var(--accent)); color:#041025; padding:8px 12px; border-radius:10px; border:none }
+
+.fade-in{ animation: fadeIn 360ms cubic-bezier(.2,.9,.2,1) both }
+
+@keyframes fadeIn{ from{ opacity: 0; transform: translateY(6px) } to{ opacity:1; transform:none } }
+
+/* responsive */
+@media (max-width: 900px){
+  .asset-browser{ display:none }
+  .properties-panel{ display:none }
+  .sim-canvas-wrap{ padding:6px }
+}

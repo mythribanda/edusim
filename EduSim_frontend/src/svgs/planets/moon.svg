@@ -1,0 +1,243 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="560"
+  height="560"
+  viewBox="120 120 760 760"
+  style="overflow: visible;"
+  aria-label="Realistic Moon"
+>
+  <defs>
+
+    <!-- Main circular clip -->
+    <clipPath id="moonClip">
+      <circle cx="500" cy="500" r="360"/>
+    </clipPath>
+
+    <!-- Base surface -->
+    <radialGradient id="moonBase" cx="38%" cy="34%" r="65%">
+      <stop offset="0%" stop-color="#E2DDD5"/>
+      <stop offset="25%" stop-color="#C8C0B3"/>
+      <stop offset="50%" stop-color="#9A9184"/>
+      <stop offset="72%" stop-color="#5A534A"/>
+      <stop offset="88%" stop-color="#26221E"/>
+      <stop offset="100%" stop-color="#090807"/>
+    </radialGradient>
+
+    <!-- Dark maria -->
+    <radialGradient id="mariaGrad" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#5B5348"/>
+      <stop offset="55%" stop-color="#3B352E"/>
+      <stop offset="100%" stop-color="#171411"/>
+    </radialGradient>
+
+    <!-- Terminator shadow -->
+    <radialGradient id="terminator" cx="34%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="45%" stop-color="#000000" stop-opacity="0.05"/>
+      <stop offset="70%" stop-color="#000000" stop-opacity="0.45"/>
+      <stop offset="88%" stop-color="#000000" stop-opacity="0.88"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="1"/>
+    </radialGradient>
+
+    <!-- Rim glow -->
+    <radialGradient id="rimGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="92%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="97%" stop-color="#F2EFE8" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Soft atmosphere -->
+    <radialGradient id="outerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="78%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="90%" stop-color="#FFFFFF" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Filters -->
+    <filter id="blurXS">
+      <feGaussianBlur stdDeviation="1"/>
+    </filter>
+
+    <filter id="blurSM">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+
+    <filter id="blurMD">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+
+  </defs>
+
+  <!-- Outer glow -->
+  <circle
+    cx="500"
+    cy="500"
+    r="375"
+    fill="url(#outerGlow)"
+    filter="url(#blurMD)"
+    opacity="0.7"
+  />
+
+  <!-- Moon body -->
+  <g clip-path="url(#moonClip)">
+
+    <!-- Base -->
+    <circle
+      cx="500"
+      cy="500"
+      r="360"
+      fill="url(#moonBase)"
+    />
+
+    <!-- Large maria -->
+    <g opacity="0.82" filter="url(#blurMD)">
+
+      <path
+        d="M240 300
+           C180 360 180 470 220 560
+           C260 650 330 700 390 660
+           C450 620 430 540 470 470
+           C510 400 480 330 430 280
+           C380 230 290 240 240 300 Z"
+        fill="url(#mariaGrad)"
+      />
+
+      <path
+        d="M430 330
+           C470 300 540 310 580 360
+           C620 410 590 470 630 510
+           C670 550 640 610 570 600
+           C500 590 450 520 440 470
+           C430 420 400 360 430 330 Z"
+        fill="url(#mariaGrad)"
+      />
+
+      <ellipse
+        cx="640"
+        cy="430"
+        rx="55"
+        ry="70"
+        fill="url(#mariaGrad)"
+      />
+
+      <ellipse
+        cx="320"
+        cy="620"
+        rx="70"
+        ry="50"
+        fill="url(#mariaGrad)"
+      />
+
+    </g>
+
+    <!-- Crater rays -->
+    <g
+      stroke="#FFFFFF"
+      stroke-opacity="0.18"
+      stroke-linecap="round"
+      filter="url(#blurSM)"
+    >
+
+      <line x1="420" y1="720" x2="220" y2="430" stroke-width="3"/>
+      <line x1="420" y1="720" x2="320" y2="260" stroke-width="2"/>
+      <line x1="420" y1="720" x2="560" y2="320" stroke-width="3"/>
+      <line x1="420" y1="720" x2="650" y2="500" stroke-width="2"/>
+
+    </g>
+
+    <!-- Major craters -->
+    <g filter="url(#blurXS)">
+
+      <circle
+        cx="420"
+        cy="720"
+        r="18"
+        fill="#BEB4A8"
+        stroke="#FFFFFF"
+        stroke-width="1.5"
+      />
+
+      <circle
+        cx="418"
+        cy="718"
+        r="12"
+        fill="#403A33"
+      />
+
+      <circle
+        cx="330"
+        cy="380"
+        r="15"
+        fill="#A69C90"
+        stroke="#FFFFFF"
+        stroke-width="1"
+      />
+
+      <circle
+        cx="328"
+        cy="378"
+        r="10"
+        fill="#2E2924"
+      />
+
+      <circle
+        cx="640"
+        cy="520"
+        r="16"
+        fill="#8B8175"
+        stroke="#D8D0C4"
+        stroke-width="1"
+      />
+
+      <circle
+        cx="250"
+        cy="320"
+        r="8"
+        fill="#FFFFFF"
+      />
+
+    </g>
+
+    <!-- Surface speckles -->
+    <g fill="#FFFFFF" opacity="0.22">
+
+      <circle cx="470" cy="250" r="3"/>
+      <circle cx="520" cy="220" r="4"/>
+      <circle cx="620" cy="300" r="5"/>
+      <circle cx="280" cy="470" r="4"/>
+      <circle cx="340" cy="540" r="5"/>
+      <circle cx="510" cy="650" r="4"/>
+      <circle cx="600" cy="620" r="3"/>
+
+    </g>
+
+    <!-- Shadow -->
+    <circle
+      cx="500"
+      cy="500"
+      r="360"
+      fill="url(#terminator)"
+    />
+
+    <!-- Rim -->
+    <circle
+      cx="500"
+      cy="500"
+      r="360"
+      fill="url(#rimGlow)"
+    />
+
+  </g>
+
+  <!-- Outer outline -->
+  <circle
+    cx="500"
+    cy="500"
+    r="360"
+    fill="none"
+    stroke="#D7D0C5"
+    stroke-width="1"
+    opacity="0.35"
+  />
+
+</svg>

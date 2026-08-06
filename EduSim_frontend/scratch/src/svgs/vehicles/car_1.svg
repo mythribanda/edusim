@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="560" viewBox="170 170 560 560" aria-label="Modern Luxury Sports Car">
+  <defs>
+    <linearGradient id="body-main" x1="0%" y1="30%" x2="100%" y2="70%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="30%" stop-color="#334155" />
+      <stop offset="50%" stop-color="#475569" />
+      <stop offset="70%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+
+    <linearGradient id="body-highlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8" stop-opacity="0.6" />
+      <stop offset="20%" stop-color="#475569" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="body-shadow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.8" />
+    </linearGradient>
+
+    <linearGradient id="glass-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="40%" stop-color="#1e293b" />
+      <stop offset="70%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.3" />
+    </linearGradient>
+
+    <radialGradient id="tire-darkness" cx="50%" cy="50%" r="50%">
+      <stop offset="70%" stop-color="#0f172a" />
+      <stop offset="85%" stop-color="#1e293b" />
+      <stop offset="96%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+
+    <radialGradient id="rim-machined" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#64748b" />
+      <stop offset="40%" stop-color="#f1f5f9" />
+      <stop offset="55%" stop-color="#475569" />
+      <stop offset="85%" stop-color="#e2e8f0" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </radialGradient>
+
+    <linearGradient id="headlight-glass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="40%" stop-color="#e0f2fe" />
+      <stop offset="100%" stop-color="#38bdf8" opacity="0.6" />
+    </linearGradient>
+
+    <linearGradient id="taillight-glass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="80%" stop-color="#b91c1c" />
+      <stop offset="100%" stop-color="#7f1d1d" />
+    </linearGradient>
+
+    <radialGradient id="laser-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="1" />
+      <stop offset="40%" stop-color="#0ea5e9" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0" />
+    </radialGradient>
+
+    <filter id="blur-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="15" />
+    </filter>
+    <filter id="blur-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <ellipse cx="600" cy="515" rx="520" ry="35" fill="#000000" opacity="0.65" filter="url(#blur-shadow)" />
+  <ellipse cx="580" cy="518" rx="460" ry="18" fill="#000000" opacity="0.8" filter="url(#blur-shadow)" />
+
+  <g id="car-structure">
+    
+    <g id="rear-wheel-far" opacity="0.8">
+      <circle cx="280" cy="430" r="75" fill="#090d16" />
+      <circle cx="280" cy="430" r="55" fill="#1e293b" />
+    </g>
+    <g id="front-wheel-far" opacity="0.8">
+      <circle cx="910" cy="430" r="75" fill="#090d16" />
+      <circle cx="910" cy="430" r="55" fill="#1e293b" />
+    </g>
+
+    <path d="M 120,440 C 120,440 100,410 110,380 C 120,350 170,340 200,340 C 250,340 320,240 400,200 C 480,160 620,150 720,190 C 820,230 870,290 920,310 C 970,320 1060,330 1090,360 C 1120,390 1100,440 1070,450 C 1020,465 140,465 120,440 Z" fill="#090d16" />
+
+    <path d="M 115,410 C 115,365 160,345 210,345 C 240,345 260,360 280,360 C 310,360 340,310 395,250 C 450,190 580,162 705,195 C 810,222 840,290 885,312 C 925,322 1010,325 1065,345 C 1110,365 1115,410 1085,445 C 1060,455 140,455 115,410 Z" fill="url(#body-main)" />
+    
+    <path d="M 115,410 C 115,365 160,345 210,345 C 240,345 260,360 280,360 C 310,360 340,310 395,250 C 450,190 580,162 705,195 C 810,222 840,290 885,312 C 925,322 1010,325 1065,345 C 1110,365 1115,410 1085,445 C 1060,455 140,455 115,410 Z" fill="url(#body-shadow)" />
+
+    <g id="cabin">
+      <path d="M 405,245 C 450,195 565,172 685,202 C 770,222 795,275 825,305 C 750,305 470,305 405,245 Z" fill="url(#glass-grad)" stroke="#090d16" stroke-width="4" />
+      
+      <path d="M 575,183 C 575,183 585,240 590,300 L 608,300 C 603,240 593,186 593,186 Z" fill="#090d16" />
+      
+      <path d="M 520,290 C 520,260 535,230 550,230 C 560,230 565,250 560,290 Z" fill="#0f172a" opacity="0.7" />
+      <path d="M 640,295 C 640,270 652,245 665,245 C 672,245 678,260 672,295 Z" fill="#0f172a" opacity="0.5" />
+    </g>
+
+    <g id="body-creases" stroke-linecap="round">
+      <path d="M 125,365 C 180,345 260,340 330,365 C 410,390 760,330 890,315 C 960,305 1040,325 1080,355" fill="none" stroke="#64748b" stroke-width="2" opacity="0.4" />
+      <path d="M 335,425 C 450,435 550,435 790,405 C 830,400 850,370 860,345" fill="none" stroke="#0f172a" stroke-width="3" />
+      <path d="M 345,422 C 450,432 550,432 785,402 C 815,398 835,375 845,355" fill="none" stroke="#94a3b8" stroke-width="1" opacity="0.3" />
+      <path d="M 385,255 C 445,190 580,165 700,198 C 790,222 830,275 865,315" fill="none" stroke="url(#body-highlight)" stroke-width="4" />
+    </g>
+
+    <path d="M 180,440 C 180,370 370,370 370,440" fill="none" stroke="#090d16" stroke-width="8" />
+    <path d="M 810,440 C 810,370 1000,370 1000,440" fill="none" stroke="#090d16" stroke-width="8" />
+
+    <path d="M 1060,350 C 1085,360 1105,385 1100,415 C 1095,440 1060,450 1040,450 L 1020,420 Z" fill="#0f172a" />
+    <path d="M 1055,385 L 1095,395 L 1085,420 L 1045,410 Z" fill="#1e293b" stroke="#475569" stroke-width="1" />
+
+    <path d="M 120,420 C 105,410 95,385 100,370 L 140,395 L 135,435 Z" fill="#0f172a" />
+    <rect x="135" y="435" width="35" height="12" rx="3" fill="#334155" />
+
+    <g id="headlight">
+      <path d="M 1010,328 C 1040,332 1065,342 1075,355 C 1050,355 1020,345 1010,328 Z" fill="url(#headlight-glass)" stroke="#ffffff" stroke-width="1" />
+      <path d="M 1025,335 L 1070,352" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" filter="url(#blur-glow)" />
+      <path d="M 1025,335 L 1070,352" stroke="#ffffff" stroke-width="1" stroke-linecap="round" />
+    </g>
+
+    <g id="taillight">
+      <path d="M 125,365 C 110,365 102,375 105,385 C 115,385 130,375 135,367 Z" fill="url(#taillight-glass)" />
+      <path d="M 106,378 L 130,370" stroke="#f87171" stroke-width="2" stroke-linecap="round" filter="url(#blur-glow)" />
+    </g>
+  </g>
+
+  <g id="rear-wheel-foreground" transform="translate(275, 435)">
+    <circle cx="0" cy="0" r="76" fill="url(#tire-darkness)" />
+    <circle cx="0" cy="0" r="74" fill="none" stroke="#334155" stroke-width="3" opacity="0.4" />
+    <circle cx="0" cy="0" r="56" fill="#090d16" />
+    
+    <circle cx="0" cy="0" r="53" fill="url(#rim-machined)" />
+    <circle cx="0" cy="0" r="48" fill="#0f172a" />
+    
+    <g id="spokes-rear" stroke="url(#rim-machined)" stroke-width="3" stroke-linecap="round">
+      <line x1="0" y1="0" x2="0" y2="-46" />
+      <line x1="0" y1="0" x2="0" y2="46" />
+      <line x1="0" y1="0" x2="-46" y2="0" />
+      <line x1="0" y1="0" x2="46" y2="0" />
+      <line x1="0" y1="0" x2="-33" y2="-33" />
+      <line x1="0" y1="0" x2="33" y2="33" />
+      <line x1="0" y1="0" x2="33" y2="-33" />
+      <line x1="0" y1="0" x2="-33" y2="33" />
+      <circle cx="0" cy="0" r="14" fill="url(#rim-machined)" />
+      <circle cx="0" cy="0" r="8" fill="#1e293b" />
+    </g>
+    <circle cx="0" cy="0" r="52" fill="none" stroke="#ffffff" stroke-width="0.7" opacity="0.8" />
+  </g>
+
+  <g id="front-wheel-foreground" transform="translate(905, 435)">
+    <circle cx="0" cy="0" r="76" fill="url(#tire-darkness)" />
+    <circle cx="0" cy="0" r="74" fill="none" stroke="#334155" stroke-width="3" opacity="0.4" />
+    <circle cx="0" cy="0" r="56" fill="#090d16" />
+    
+    <circle cx="0" cy="0" r="53" fill="url(#rim-machined)" />
+    <circle cx="0" cy="0" r="48" fill="#0f172a" />
+    
+    <g id="spokes-front" stroke="url(#rim-machined)" stroke-width="3" stroke-linecap="round">
+      <line x1="0" y1="0" x2="0" y2="-46" />
+      <line x1="0" y1="0" x2="0" y2="46" />
+      <line x1="0" y1="0" x2="-46" y2="0" />
+      <line x1="0" y1="0" x2="46" y2="0" />
+      <line x1="0" y1="0" x2="-33" y2="-33" />
+      <line x1="0" y1="0" x2="33" y2="33" />
+      <line x1="0" y1="0" x2="33" y2="-33" />
+      <line x1="0" y1="0" x2="-33" y2="33" />
+      <circle cx="0" cy="0" r="14" fill="url(#rim-machined)" />
+      <circle cx="0" cy="0" r="8" fill="#1e293b" />
+    </g>
+    <circle cx="0" cy="0" r="52" fill="none" stroke="#ffffff" stroke-width="0.7" opacity="0.8" />
+  </g>
+
+</svg>

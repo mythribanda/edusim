@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 220" width="100%" height="100%">
+  <defs>
+    <linearGradient id="goldFoil" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="30%" stop-color="#eab308" />
+      <stop offset="70%" stop-color="#ca8a04" />
+      <stop offset="100%" stop-color="#854d0e" />
+    </linearGradient>
+    <linearGradient id="goldHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="100%" stop-color="#eab308" />
+    </linearGradient>
+
+    <linearGradient id="solarBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#0369a1" />
+      <stop offset="100%" stop-color="#075985" />
+    </linearGradient>
+    <linearGradient id="solarSpecular" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="15%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0c4a6e" />
+    </linearGradient>
+
+    <linearGradient id="titanium" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9" />
+      <stop offset="40%" stop-color="#cbd5e1" />
+      <stop offset="70%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#475569" />
+    </linearGradient>
+    <linearGradient id="darkMetal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+
+    <radialGradient id="dishInterior" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#e2e8f0" />
+      <stop offset="75%" stop-color="#94a3b8" />
+      <stop offset="100%" stop-color="#475569" />
+    </radialGradient>
+  </defs>
+
+  <g id="LeftSolarArray">
+    <rect x="15" y="106" width="115" height="8" fill="url(#titanium)" stroke="#334155" stroke-width="1" />
+    
+    <rect x="15" y="60" width="100" height="100" rx="4" fill="#1e293b" stroke="#475569" stroke-width="2" />
+    
+    <rect x="20" y="65" width="26" height="42" fill="url(#solarSpecular)" />
+    <rect x="51" y="65" width="26" height="42" fill="url(#solarBlue)" />
+    <rect x="82" y="65" width="26" height="42" fill="url(#solarBlue)" />
+    <rect x="20" y="113" width="26" height="42" fill="url(#solarBlue)" />
+    <rect x="51" y="113" width="26" height="42" fill="url(#solarBlue)" />
+    <rect x="82" y="113" width="26" height="42" fill="url(#solarSpecular)" />
+    
+    <g stroke="#0f172a" stroke-width="1" opacity="0.4">
+      <line x1="20" y1="86" x2="108" y2="86" />
+      <line x1="20" y1="134" x2="108" y2="134" />
+      <line x1="33" y1="65" x2="33" y2="155" />
+      <line x1="64" y1="65" x2="64" y2="155" />
+      <line x1="95" y1="65" x2="95" y2="155" />
+    </g>
+
+    <path d="M 15,80 L 10,83 L 10,91 L 15,94 Z" fill="url(#titanium)" stroke="#334155" />
+    <path d="M 15,126 L 10,129 L 10,137 L 15,140 Z" fill="url(#titanium)" stroke="#334155" />
+  </g>
+
+  <g id="RightSolarArray">
+    <rect x="230" y="106" width="115" height="8" fill="url(#titanium)" stroke="#334155" stroke-width="1" />
+    
+    <rect x="245" y="60" width="100" height="100" rx="4" fill="#1e293b" stroke="#475569" stroke-width="2" />
+    
+    <rect x="250" y="65" width="26" height="42" fill="url(#solarBlue)" />
+    <rect x="281" y="65" width="26" height="42" fill="url(#solarSpecular)" />
+    <rect x="312" y="65" width="26" height="42" fill="url(#solarBlue)" />
+    <rect x="250" y="113" width="26" height="42" fill="url(#solarBlue)" />
+    <rect x="281" y="113" width="26" height="42" fill="url(#solarBlue)" />
+    <rect x="312" y="113" width="26" height="42" fill="url(#solarSpecular)" />
+    
+    <g stroke="#0f172a" stroke-width="1" opacity="0.4">
+      <line x1="250" y1="86" x2="338" y2="86" />
+      <line x1="250" y1="134" x2="338" y2="134" />
+      <line x1="263" y1="65" x2="263" y2="155" />
+      <line x1="294" y1="65" x2="294" y2="155" />
+      <line x1="325" y1="65" x2="325" y2="155" />
+    </g>
+
+    <path d="M 345,80 L 350,83 L 350,91 L 345,94 Z" fill="url(#titanium)" stroke="#334155" />
+    <path d="M 345,126 L 350,129 L 350,137 L 345,140 Z" fill="url(#titanium)" stroke="#334155" />
+  </g>
+
+  <rect x="124" y="102" width="112" height="16" fill="url(#darkMetal)" stroke="#1e293b" />
+
+  <g id="SatelliteBus">
+    <rect x="135" y="65" width="90" height="90" rx="6" fill="url(#goldFoil)" stroke="#78350f" stroke-width="2" />
+    <rect x="140" y="70" width="80" height="35" fill="url(#goldHighlight)" opacity="0.3" />
+    <rect x="140" y="110" width="80" height="40" fill="#ca8a04" opacity="0.2" />
+
+    <circle cx="147" cy="77" r="3" fill="url(#titanium)" stroke="#334155" stroke-width="0.5" />
+    <circle cx="213" cy="77" r="3" fill="url(#titanium)" stroke="#334155" stroke-width="0.5" />
+    <circle cx="147" cy="143" r="3" fill="url(#titanium)" stroke="#334155" stroke-width="0.5" />
+    <circle cx="213" cy="143" r="3" fill="url(#titanium)" stroke="#334155" stroke-width="0.5" />
+    
+    <rect x="170" y="100" width="20" height="20" rx="3" fill="url(#darkMetal)" stroke="url(#goldHighlight)" stroke-width="1" />
+    <circle cx="180" cy="110" r="6" fill="#0284c7" stroke="#ffffff" stroke-width="1" />
+    <circle cx="178" cy="108" r="2" fill="#ffffff" opacity="0.7" />
+  </g>
+
+  <g id="TopPayload">
+    <path d="M 174,65 L 174,30 L 186,30 L 186,65 Z" fill="url(#titanium)" stroke="#475569" stroke-width="1" />
+    
+    <path d="M 140,30 C 140,10 220,10 220,30 Z" fill="url(#dishInterior)" stroke="#64748b" stroke-width="1.5" />
+    
+    <line x1="155" y1="22" x2="180" y2="2" stroke="url(#darkMetal)" stroke-width="1.5" />
+    <line x1="205" y1="22" x2="180" y2="2" stroke="url(#darkMetal)" stroke-width="1.5" />
+    <circle cx="180" cy="2" r="3.5" fill="url(#goldFoil)" stroke="#78350f" stroke-width="0.5" />
+  </g>
+
+  <g id="BottomPayload">
+    <polygon points="150,155 210,155 200,165 160,165" fill="url(#darkMetal)" stroke="#1e293b" />
+    
+    <polygon points="172,165 188,165 194,185 166,185" fill="url(#titanium)" stroke="#475569" stroke-width="1" />
+    <ellipse cx="180" cy="185" rx="14" ry="3" fill="url(#goldFoil)" stroke="#ca8a04" stroke-width="1" />
+
+    <line x1="155" y1="165" x2="145" y2="218" stroke="url(#titanium)" stroke-width="2" stroke-linecap="round" />
+    <circle cx="145" cy="218" r="2" fill="url(#goldFoil)" />
+
+    <line x1="205" y1="165" x2="215" y2="218" stroke="url(#titanium)" stroke-width="2" stroke-linecap="round" />
+    <circle cx="215" cy="218" r="2" fill="url(#goldFoil)" />
+  </g>
+</svg>

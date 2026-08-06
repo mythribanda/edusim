@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <path d="M 60,288 L 505,288 L 505,300 L 485,300 L 480,293 L 415,293 L 410,300 L 340,300 L 335,293 L 155,293 L 150,300 L 90,300 L 82,288 Z" fill="#000000" />
+
+  <path d="M 46,243 C 46,238 52,226 62,210 L 95,145 C 100,135 108,132 120,132 L 180,132 L 180,245 L 508,245 L 508,272 C 508,276 504,280 498,280 L 52,280 C 48,280 46,275 46,270 Z" fill="#042a3a" />
+
+  <path d="M 46,260 L 82,260 C 85,260 88,263 88,267 L 88,275 C 88,278 85,280 82,280 L 46,280 Z" fill="#000000" />
+
+  <rect x="52" y="224" width="10" height="18" rx="2" fill="#ffffff" />
+
+  <path d="M 103,144 L 168,144 L 168,222 L 78,222 L 103,144 Z" fill="#ffffff" />
+
+  <path d="M 140,205 L 156,205 C 158,205 160,207 160,209 L 160,211 C 160,214 157,216 154,214 L 144,214 L 140,210 Z" fill="#ffffff" />
+
+  <g id="cargo-container">
+    <rect x="187" y="93" width="345" height="142" rx="6" fill="#a3aab0" />
+    <rect x="193" y="99" width="333" height="130" rx="3" fill="none" stroke="#ffffff" stroke-width="4" />
+  </g>
+
+  <g id="front-wheel" transform="translate(126, 280)">
+    <circle cx="0" cy="0" r="32" fill="#000000" />
+    <circle cx="0" cy="0" r="19" fill="none" stroke="#ffffff" stroke-width="5" />
+    <circle cx="0" cy="0" r="8" fill="#ffffff" />
+  </g>
+
+  <g id="rear-wheel-1" transform="translate(365, 280)">
+    <circle cx="0" cy="0" r="32" fill="#000000" />
+    <circle cx="0" cy="0" r="19" fill="none" stroke="#ffffff" stroke-width="5" />
+    <circle cx="0" cy="0" r="8" fill="#ffffff" />
+  </g>
+
+  <g id="rear-wheel-2" transform="translate(440, 280)">
+    <circle cx="0" cy="0" r="32" fill="#000000" />
+    <circle cx="0" cy="0" r="19" fill="none" stroke="#ffffff" stroke-width="5" />
+    <circle cx="0" cy="0" r="8" fill="#ffffff" />
+  </g>
+</svg>

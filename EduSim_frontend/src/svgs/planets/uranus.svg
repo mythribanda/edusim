@@ -1,0 +1,127 @@
+<svg width="560" height="560" viewBox="170 170 560 560" xmlns="http://www.w3.org/2000/svg">
+<title>Uranus</title>
+<defs>
+  <radialGradient id="uranusCore" cx="40%" cy="36%" r="62%">
+    <stop offset="0%" stop-color="#D8F8F8"/>
+    <stop offset="18%" stop-color="#A8E8E8"/>
+    <stop offset="38%" stop-color="#68C8CC"/>
+    <stop offset="58%" stop-color="#3898A8"/>
+    <stop offset="76%" stop-color="#186880"/>
+    <stop offset="100%" stop-color="#083848"/>
+  </radialGradient>
+  <radialGradient id="uranusAtmos" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#88E8F0" stop-opacity="0"/>
+    <stop offset="58%" stop-color="#60C8D8" stop-opacity="0"/>
+    <stop offset="70%" stop-color="#50B8CC" stop-opacity="0.25"/>
+    <stop offset="80%" stop-color="#68C8DC" stop-opacity="0.38"/>
+    <stop offset="90%" stop-color="#90D8E8" stop-opacity="0.18"/>
+    <stop offset="100%" stop-color="#B0E8F0" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="uranusOuterGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#40A8C0" stop-opacity="0"/>
+    <stop offset="65%" stop-color="#38A0B8" stop-opacity="0"/>
+    <stop offset="78%" stop-color="#2890A8" stop-opacity="0.1"/>
+    <stop offset="90%" stop-color="#40A8C0" stop-opacity="0.05"/>
+    <stop offset="100%" stop-color="#60C0D0" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="uranusLimb" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="55%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="76%" stop-color="#001818" stop-opacity="0.38"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.88"/>
+  </radialGradient>
+  <filter id="uranusBands" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.010 0.040" numOctaves="7" seed="19" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="18" xChannelSelector="R" yChannelSelector="G" result="disp"/>
+    <feColorMatrix type="matrix"
+      values="0.7  0.2  0.3  0  0.05
+              0.1  0.85 0.35 0  0.06
+              0.05 0.2  1.0  0  0.04
+              0    0    0    1  0"
+      in="disp"/>
+  </filter>
+  <filter id="uranusGlowBlur" x="-35%" y="-35%" width="170%" height="170%">
+    <feGaussianBlur stdDeviation="22"/>
+  </filter>
+  <filter id="uranusAtmosBlur" x="-25%" y="-25%" width="150%" height="150%">
+    <feGaussianBlur stdDeviation="14"/>
+  </filter>
+  <filter id="ringBlurU" x="-5%" y="-5%" width="110%" height="110%">
+    <feGaussianBlur stdDeviation="0.8"/>
+  </filter>
+  <clipPath id="uranusClip"><circle cx="450" cy="450" r="245"/></clipPath>
+  <clipPath id="uRingFront"><rect x="0" y="460" width="900" height="440"/></clipPath>
+  <clipPath id="uRingBack"><rect x="0" y="0" width="900" height="444"/></clipPath>
+  <radialGradient id="uranusHighlight" cx="30%" cy="26%" r="46%">
+    <stop offset="0%" stop-color="#EEFEFF" stop-opacity="0.48"/>
+    <stop offset="40%" stop-color="#C0EEFF" stop-opacity="0.18"/>
+    <stop offset="100%" stop-color="#60B8CC" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="uranusShadow" cx="72%" cy="68%" r="46%">
+    <stop offset="0%" stop-color="#001018" stop-opacity="0.7"/>
+    <stop offset="52%" stop-color="#001018" stop-opacity="0.26"/>
+    <stop offset="100%" stop-color="#001018" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="uBand1" x1="0%" y1="0%" x2="100%" y2="4%">
+    <stop offset="0%" stop-color="#2888A0" stop-opacity="0.35"/>
+    <stop offset="50%" stop-color="#3898B0" stop-opacity="0.48"/>
+    <stop offset="100%" stop-color="#2888A0" stop-opacity="0.35"/>
+  </linearGradient>
+  <linearGradient id="uBand2" x1="0%" y1="0%" x2="100%" y2="-3%">
+    <stop offset="0%" stop-color="#90D0DC" stop-opacity="0.3"/>
+    <stop offset="50%" stop-color="#A0DCE8" stop-opacity="0.42"/>
+    <stop offset="100%" stop-color="#90D0DC" stop-opacity="0.3"/>
+  </linearGradient>
+  <!-- Uranus rings (tilted) -->
+  <linearGradient id="uRing1" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" stop-color="#506878" stop-opacity="0.5"/>
+    <stop offset="50%" stop-color="#607888" stop-opacity="0.7"/>
+    <stop offset="100%" stop-color="#506878" stop-opacity="0.5"/>
+  </linearGradient>
+</defs>
+<!-- Outer glow -->
+<ellipse cx="450" cy="450" rx="308" ry="308" fill="#50B8CC" filter="url(#uranusGlowBlur)" opacity="0.18"/>
+
+<!-- Rings back -->
+<g clip-path="url(#uRingBack)">
+  <ellipse cx="450" cy="452" rx="298" ry="42" fill="none" stroke="#485868" stroke-width="4" filter="url(#ringBlurU)" opacity="0.6"/>
+  <ellipse cx="450" cy="452" rx="312" ry="44" fill="none" stroke="#506878" stroke-width="3" filter="url(#ringBlurU)" opacity="0.5"/>
+  <ellipse cx="450" cy="452" rx="325" ry="46" fill="none" stroke="#607888" stroke-width="6" filter="url(#ringBlurU)" opacity="0.55"/>
+  <ellipse cx="450" cy="452" rx="340" ry="48" fill="none" stroke="#506878" stroke-width="3" filter="url(#ringBlurU)" opacity="0.45"/>
+  <ellipse cx="450" cy="452" rx="354" ry="50" fill="none" stroke="#485868" stroke-width="4" filter="url(#ringBlurU)" opacity="0.4"/>
+  <ellipse cx="450" cy="452" rx="368" ry="52" fill="none" stroke="#607080" stroke-width="8" filter="url(#ringBlurU)" opacity="0.5"/>
+</g>
+
+<!-- Planet disc -->
+<circle cx="450" cy="450" r="245" fill="url(#uranusCore)"/>
+<circle cx="450" cy="450" r="245" fill="url(#uranusCore)" filter="url(#uranusBands)" clip-path="url(#uranusClip)" opacity="0.85"/>
+<!-- Subtle cloud bands -->
+<rect x="205" y="308" width="490" height="18" fill="url(#uBand1)" clip-path="url(#uranusClip)"/>
+<rect x="205" y="332" width="490" height="12" fill="url(#uBand2)" clip-path="url(#uranusClip)" opacity="0.7"/>
+<rect x="205" y="350" width="490" height="20" fill="url(#uBand1)" clip-path="url(#uranusClip)" opacity="0.8"/>
+<rect x="205" y="376" width="490" height="14" fill="url(#uBand2)" clip-path="url(#uranusClip)" opacity="0.6"/>
+<rect x="205" y="396" width="490" height="22" fill="url(#uBand1)" clip-path="url(#uranusClip)" opacity="0.75"/>
+<rect x="205" y="424" width="490" height="12" fill="url(#uBand2)" clip-path="url(#uranusClip)" opacity="0.55"/>
+<rect x="205" y="442" width="490" height="20" fill="url(#uBand1)" clip-path="url(#uranusClip)" opacity="0.7"/>
+<rect x="205" y="468" width="490" height="16" fill="url(#uBand2)" clip-path="url(#uranusClip)" opacity="0.6"/>
+<rect x="205" y="490" width="490" height="18" fill="url(#uBand1)" clip-path="url(#uranusClip)" opacity="0.65"/>
+<rect x="205" y="514" width="490" height="12" fill="url(#uBand2)" clip-path="url(#uranusClip)" opacity="0.5"/>
+<rect x="205" y="532" width="490" height="20" fill="url(#uBand1)" clip-path="url(#uranusClip)" opacity="0.6"/>
+<rect x="205" y="558" width="490" height="16" fill="url(#uBand2)" clip-path="url(#uranusClip)" opacity="0.5"/>
+<circle cx="450" cy="450" r="245" fill="url(#uranusShadow)" clip-path="url(#uranusClip)"/>
+<circle cx="450" cy="450" r="245" fill="url(#uranusHighlight)" clip-path="url(#uranusClip)"/>
+<circle cx="450" cy="450" r="245" fill="url(#uranusLimb)"/>
+
+<!-- Rings front -->
+<g clip-path="url(#uRingFront)">
+  <ellipse cx="450" cy="452" rx="298" ry="42" fill="none" stroke="#485868" stroke-width="4" filter="url(#ringBlurU)" opacity="0.6"/>
+  <ellipse cx="450" cy="452" rx="312" ry="44" fill="none" stroke="#506878" stroke-width="3" filter="url(#ringBlurU)" opacity="0.5"/>
+  <ellipse cx="450" cy="452" rx="325" ry="46" fill="none" stroke="#607888" stroke-width="6" filter="url(#ringBlurU)" opacity="0.55"/>
+  <ellipse cx="450" cy="452" rx="340" ry="48" fill="none" stroke="#506878" stroke-width="3" filter="url(#ringBlurU)" opacity="0.45"/>
+  <ellipse cx="450" cy="452" rx="354" ry="50" fill="none" stroke="#485868" stroke-width="4" filter="url(#ringBlurU)" opacity="0.4"/>
+  <ellipse cx="450" cy="452" rx="368" ry="52" fill="none" stroke="#607080" stroke-width="8" filter="url(#ringBlurU)" opacity="0.5"/>
+</g>
+
+<circle cx="450" cy="450" r="256" fill="url(#uranusAtmos)" filter="url(#uranusAtmosBlur)" opacity="0.88"/>
+<circle cx="450" cy="450" r="272" fill="url(#uranusOuterGlow)" filter="url(#uranusGlowBlur)" opacity="0.65"/>
+</svg>

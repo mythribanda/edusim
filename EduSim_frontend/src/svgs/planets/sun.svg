@@ -1,0 +1,263 @@
+<svg width="560" height="560" viewBox="170 170 560 560" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Cinematic Sun Illustration</title>
+<desc>Ultra-detailed SVG illustration of the Sun with corona, solar flares, plasma textures, and volumetric glow layers.</desc>
+<defs>
+  <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="1"/>
+    <stop offset="8%"   stop-color="#FFFBE0" stop-opacity="1"/>
+    <stop offset="20%"  stop-color="#FFF5A0" stop-opacity="1"/>
+    <stop offset="38%"  stop-color="#FFCC00" stop-opacity="1"/>
+    <stop offset="55%"  stop-color="#FF8800" stop-opacity="1"/>
+    <stop offset="72%"  stop-color="#E84400" stop-opacity="1"/>
+    <stop offset="88%"  stop-color="#C02800" stop-opacity="1"/>
+    <stop offset="100%" stop-color="#7A1200" stop-opacity="1"/>
+  </radialGradient>
+  <radialGradient id="halo1" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#FF9900" stop-opacity="0"/>
+    <stop offset="45%"  stop-color="#FF6600" stop-opacity="0"/>
+    <stop offset="65%"  stop-color="#FF4400" stop-opacity="0.35"/>
+    <stop offset="78%"  stop-color="#FF6600" stop-opacity="0.6"/>
+    <stop offset="88%"  stop-color="#FFA020" stop-opacity="0.45"/>
+    <stop offset="95%"  stop-color="#FFD040" stop-opacity="0.2"/>
+    <stop offset="100%" stop-color="#FF8800" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="corona1" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#FF9900" stop-opacity="0"/>
+    <stop offset="55%"  stop-color="#FF8800" stop-opacity="0"/>
+    <stop offset="68%"  stop-color="#FF6600" stop-opacity="0.3"/>
+    <stop offset="80%"  stop-color="#FF4400" stop-opacity="0.18"/>
+    <stop offset="90%"  stop-color="#FF8800" stop-opacity="0.08"/>
+    <stop offset="100%" stop-color="#FF9900" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="corona2" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#FF8800" stop-opacity="0"/>
+    <stop offset="60%"  stop-color="#FF8800" stop-opacity="0"/>
+    <stop offset="72%"  stop-color="#FF7700" stop-opacity="0.12"/>
+    <stop offset="82%"  stop-color="#FF9900" stop-opacity="0.07"/>
+    <stop offset="92%"  stop-color="#FFB800" stop-opacity="0.04"/>
+    <stop offset="100%" stop-color="#FFAA00" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="bloom" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#FF7700" stop-opacity="0"/>
+    <stop offset="65%"  stop-color="#FF7700" stop-opacity="0"/>
+    <stop offset="78%"  stop-color="#FF6600" stop-opacity="0.06"/>
+    <stop offset="88%"  stop-color="#FF8800" stop-opacity="0.03"/>
+    <stop offset="100%" stop-color="#FFAA00" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="limbDark" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#000000" stop-opacity="0"/>
+    <stop offset="55%"  stop-color="#000000" stop-opacity="0"/>
+    <stop offset="78%"  stop-color="#200800" stop-opacity="0.28"/>
+    <stop offset="90%"  stop-color="#100400" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#050100" stop-opacity="0.85"/>
+  </radialGradient>
+  <filter id="granFilter" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence type="turbulence" baseFrequency="0.022 0.018" numOctaves="8" seed="3" result="turb"/>
+    <feColorMatrix type="saturate" values="0" in="turb" result="gray"/>
+    <feColorMatrix type="matrix"
+      values="3  0  0  0 -0.8
+              1.2 0  0  0 -0.2
+              0  0  0  0  0
+              0  0  0  8 -3.5"
+      in="gray" result="cells"/>
+    <feComposite in="cells" in2="SourceGraphic" operator="in" result="masked"/>
+    <feBlend in="SourceGraphic" in2="masked" mode="overlay" result="blend"/>
+    <feColorMatrix type="matrix"
+      values="1.1 0.1 0   0  0.02
+              0.3 0.8 0.1 0  0
+              0   0   0.6 0  0
+              0   0   0   1  0"
+      in="blend"/>
+  </filter>
+  <filter id="plasmaFilter" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035 0.028" numOctaves="6" seed="7" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+    <feGaussianBlur in="displaced" stdDeviation="1.2" result="soft"/>
+    <feColorMatrix type="matrix"
+      values="1.15 0.15 0    0  0
+              0.4  0.85 0.05 0  0
+              0    0    0.5  0  0
+              0    0    0    1  0"
+      in="soft"/>
+  </filter>
+  <filter id="coronaBlur" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+    <feGaussianBlur stdDeviation="18"/>
+    <feColorMatrix type="matrix"
+      values="1.2 0.3  0    0  0.05
+              0.5 0.9  0.05 0  0
+              0   0    0.4  0  0
+              0   0    0    1  0"/>
+  </filter>
+  <filter id="outerGlow" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+    <feGaussianBlur stdDeviation="38"/>
+    <feColorMatrix type="matrix"
+      values="1.4 0.4  0    0  0.08
+              0.6 1.0  0.1  0  0.02
+              0   0    0.3  0  0
+              0   0    0    0.8 0"/>
+  </filter>
+  <filter id="flareGlow" x="-80%" y="-80%" width="260%" height="260%" color-interpolation-filters="sRGB">
+    <feGaussianBlur stdDeviation="10"/>
+    <feColorMatrix type="matrix"
+      values="1.5 0.5  0    0  0.1
+              0.5 0.9  0.05 0  0
+              0   0    0.2  0  0
+              0   0    0    0.9 0"/>
+  </filter>
+  <filter id="streamBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="5"/>
+  </filter>
+  <clipPath id="discClip">
+    <circle cx="450" cy="450" r="230"/>
+  </clipPath>
+  <radialGradient id="granLayer" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#FFE080" stop-opacity="0.7"/>
+    <stop offset="30%"  stop-color="#FFC040" stop-opacity="0.5"/>
+    <stop offset="60%"  stop-color="#FF8000" stop-opacity="0.35"/>
+    <stop offset="85%"  stop-color="#CC3000" stop-opacity="0.2"/>
+    <stop offset="100%" stop-color="#801800" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="arcGrad1" x1="0%" y1="100%" x2="100%" y2="0%">
+    <stop offset="0%"   stop-color="#FF4400" stop-opacity="0.9"/>
+    <stop offset="40%"  stop-color="#FF8800" stop-opacity="0.7"/>
+    <stop offset="75%"  stop-color="#FFCC00" stop-opacity="0.5"/>
+    <stop offset="100%" stop-color="#FFE880" stop-opacity="0.1"/>
+  </linearGradient>
+  <linearGradient id="arcGrad2" x1="100%" y1="100%" x2="0%" y2="0%">
+    <stop offset="0%"   stop-color="#FF3300" stop-opacity="0.85"/>
+    <stop offset="50%"  stop-color="#FF7700" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#FFDD00" stop-opacity="0.05"/>
+  </linearGradient>
+  <linearGradient id="arcGrad3" x1="50%" y1="100%" x2="60%" y2="0%">
+    <stop offset="0%"   stop-color="#CC2200" stop-opacity="0.9"/>
+    <stop offset="45%"  stop-color="#FF5500" stop-opacity="0.6"/>
+    <stop offset="85%"  stop-color="#FFAA00" stop-opacity="0.25"/>
+    <stop offset="100%" stop-color="#FFE000" stop-opacity="0"/>
+  </linearGradient>
+  <linearGradient id="arcGrad4" x1="0%" y1="50%" x2="100%" y2="30%">
+    <stop offset="0%"   stop-color="#FF2200" stop-opacity="0.8"/>
+    <stop offset="55%"  stop-color="#FF6600" stop-opacity="0.5"/>
+    <stop offset="100%" stop-color="#FFCC00" stop-opacity="0"/>
+  </linearGradient>
+  <linearGradient id="flareGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%"   stop-color="#FF9900" stop-opacity="0"/>
+    <stop offset="35%"  stop-color="#FFD060" stop-opacity="0.8"/>
+    <stop offset="60%"  stop-color="#FFFFFF" stop-opacity="1"/>
+    <stop offset="80%"  stop-color="#FFCC40" stop-opacity="0.5"/>
+    <stop offset="100%" stop-color="#FF6600" stop-opacity="0"/>
+  </linearGradient>
+  <linearGradient id="flareGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%"   stop-color="#FF8800" stop-opacity="0"/>
+    <stop offset="40%"  stop-color="#FFB050" stop-opacity="0.7"/>
+    <stop offset="65%"  stop-color="#FFE080" stop-opacity="0.9"/>
+    <stop offset="100%" stop-color="#FF4400" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="highlight" cx="38%" cy="36%" r="35%">
+    <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.55"/>
+    <stop offset="35%"  stop-color="#FFFACC" stop-opacity="0.2"/>
+    <stop offset="70%"  stop-color="#FFE060" stop-opacity="0.05"/>
+    <stop offset="100%" stop-color="#FF8800" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+
+<ellipse cx="450" cy="450" rx="440" ry="440" fill="url(#bloom)" filter="url(#outerGlow)" opacity="0.9"/>
+<ellipse cx="450" cy="450" rx="390" ry="390" fill="url(#corona2)" filter="url(#outerGlow)" opacity="0.75"/>
+
+<g opacity="0.18" filter="url(#streamBlur)">
+  <line x1="450" y1="450" x2="450" y2="95"  stroke="#FFCC44" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="450" y2="805" stroke="#FFBB33" stroke-width="2"   stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="95"  y2="450" stroke="#FFA822" stroke-width="2"   stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="805" y2="450" stroke="#FFAA22" stroke-width="2"   stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="191" y2="191" stroke="#FFC033" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="709" y2="191" stroke="#FFB033" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="191" y2="709" stroke="#FF9922" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="709" y2="709" stroke="#FFA022" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="148" y2="310" stroke="#FFBB44" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="310" y2="148" stroke="#FFBB44" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="752" y2="310" stroke="#FFBB44" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="590" y2="148" stroke="#FFBB44" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="148" y2="590" stroke="#FFAA33" stroke-width="1"   stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="310" y2="752" stroke="#FFAA33" stroke-width="1"   stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="752" y2="590" stroke="#FFAA33" stroke-width="1"   stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="590" y2="752" stroke="#FFAA33" stroke-width="1"   stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="230" y2="118" stroke="#FFB840" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="118" y2="230" stroke="#FFB840" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="670" y2="118" stroke="#FFB840" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="782" y2="230" stroke="#FFB840" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="118" y2="670" stroke="#FFA033" stroke-width="0.7" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="230" y2="782" stroke="#FFA033" stroke-width="0.7" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="782" y2="670" stroke="#FFA033" stroke-width="0.7" stroke-linecap="round"/>
+  <line x1="450" y1="450" x2="670" y2="782" stroke="#FFA033" stroke-width="0.7" stroke-linecap="round"/>
+</g>
+
+<circle cx="450" cy="450" r="360" fill="url(#corona1)" filter="url(#coronaBlur)" opacity="0.85"/>
+<circle cx="450" cy="450" r="310" fill="url(#halo1)"   filter="url(#coronaBlur)" opacity="0.9"/>
+
+<g filter="url(#flareGlow)" opacity="0.88">
+  <path d="M340,242 Q295,170 260,140 Q230,120 270,155 Q295,178 320,220 Q335,238 345,255"
+        fill="none" stroke="url(#arcGrad1)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M340,242 Q285,155 255,122 Q228,95 265,130 Q300,165 328,215 Q338,238 344,258"
+        fill="none" stroke="url(#arcGrad1)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+</g>
+<g filter="url(#flareGlow)" opacity="0.82">
+  <path d="M645,390 Q720,340 760,290 Q790,248 755,280 Q728,310 698,365 Q672,400 655,418"
+        fill="none" stroke="url(#arcGrad2)" stroke-width="6" stroke-linecap="round"/>
+  <path d="M645,390 Q730,328 772,268 Q808,218 768,265 Q736,305 700,368 Q672,405 658,425"
+        fill="none" stroke="url(#arcGrad2)" stroke-width="2.8" stroke-linecap="round" opacity="0.6"/>
+</g>
+<g filter="url(#flareGlow)" opacity="0.78">
+  <path d="M480,668 Q520,740 505,785 Q495,815 488,778 Q482,748 480,700 Q479,678 479,662"
+        fill="none" stroke="url(#arcGrad3)" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M478,670 Q525,752 510,800 Q498,832 492,792 Q485,758 482,704 Q480,682 480,665"
+        fill="none" stroke="url(#arcGrad3)" stroke-width="2.5" stroke-linecap="round" opacity="0.65"/>
+</g>
+<g filter="url(#flareGlow)" opacity="0.72">
+  <path d="M578,278 Q630,220 675,195 Q710,175 682,202 Q658,222 620,268 Q596,300 585,318"
+        fill="none" stroke="url(#arcGrad4)" stroke-width="4.5" stroke-linecap="round"/>
+</g>
+<g filter="url(#flareGlow)" opacity="0.65">
+  <path d="M268,558 Q210,610 180,650 Q158,680 182,658 Q205,635 248,590 Q262,572 272,560"
+        fill="none" stroke="url(#arcGrad1)" stroke-width="4" stroke-linecap="round"/>
+</g>
+
+<g opacity="0.55" filter="url(#streamBlur)">
+  <path d="M355,237 Q318,195 296,162 Q278,132 295,150 Q315,172 342,212 Q354,232 358,245"
+        fill="none" stroke="#FFBB44" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M668,405 Q715,385 748,360 Q775,338 752,355 Q728,375 690,400 Q672,415 665,425"
+        fill="none" stroke="#FFAA33" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M470,672 Q500,718 485,758 Q472,790 475,756 Q477,724 472,686 Q471,673 471,668"
+        fill="none" stroke="#FF8822" stroke-width="1.2" stroke-linecap="round"/>
+</g>
+
+<circle cx="450" cy="450" r="230" fill="url(#coreGrad)"/>
+<circle cx="450" cy="450" r="230" fill="url(#granLayer)" filter="url(#granFilter)" clip-path="url(#discClip)" opacity="0.92"/>
+<circle cx="450" cy="450" r="230" fill="url(#granLayer)" filter="url(#plasmaFilter)" clip-path="url(#discClip)" opacity="0.45"/>
+<circle cx="450" cy="450" r="230" fill="url(#limbDark)" clip-path="url(#discClip)"/>
+<circle cx="450" cy="450" r="230" fill="url(#highlight)" clip-path="url(#discClip)"/>
+
+<circle cx="450" cy="450" r="250" fill="none" stroke="#FF8800" stroke-width="28" opacity="0.22" filter="url(#coronaBlur)"/>
+<circle cx="450" cy="450" r="260" fill="none" stroke="#FFAA00" stroke-width="18" opacity="0.14" filter="url(#coronaBlur)"/>
+
+<g opacity="0.12" filter="url(#flareGlow)">
+  <line x1="450" y1="140" x2="450" y2="760" stroke="url(#flareGrad1)" stroke-width="4"/>
+  <line x1="140" y1="450" x2="760" y2="450" stroke="url(#flareGrad2)" stroke-width="3.5"/>
+  <line x1="220" y1="220" x2="680" y2="680" stroke="url(#flareGrad1)" stroke-width="2.5"/>
+  <line x1="680" y1="220" x2="220" y2="680" stroke="url(#flareGrad2)" stroke-width="2.5"/>
+</g>
+
+<g opacity="0.6" filter="url(#streamBlur)">
+  <path d="M450,220 Q435,195 445,178 Q455,162 460,182 Q462,200 452,222" fill="#FF5500" opacity="0.7"/>
+  <path d="M606,318 Q625,305 635,290 Q644,275 635,290 Q625,305 612,322" fill="#FF4400" opacity="0.6"/>
+  <path d="M294,352 Q272,345 262,330 Q255,315 266,330 Q275,345 298,356" fill="#FF3300" opacity="0.55"/>
+  <path d="M388,670 Q376,688 378,702 Q380,716 386,702 Q390,688 392,672" fill="#FF5500" opacity="0.65"/>
+  <path d="M572,582 Q590,598 598,612 Q606,626 596,612 Q586,598 574,584" fill="#FF4400" opacity="0.5"/>
+</g>
+
+<g clip-path="url(#discClip)" opacity="0.55">
+  <circle cx="392" cy="388" r="28" fill="#FFFFFF" opacity="0.18"/>
+  <circle cx="505" cy="418" r="20" fill="#FFFFFF" opacity="0.12"/>
+  <circle cx="438" cy="492" r="16" fill="#FFE080" opacity="0.2"/>
+  <circle cx="468" cy="370" r="22" fill="#FFD050" opacity="0.22"/>
+  <circle cx="355" cy="458" r="14" fill="#FFB040" opacity="0.16"/>
+</g>
+</svg>

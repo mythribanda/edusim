@@ -1,0 +1,102 @@
+<svg width="560" height="560" viewBox="170 170 560 560" xmlns="http://www.w3.org/2000/svg">
+<title>Earth</title>
+<defs>
+  <radialGradient id="earthOcean" cx="40%" cy="36%" r="62%">
+    <stop offset="0%" stop-color="#A8D8FF"/>
+    <stop offset="20%" stop-color="#5AAEE8"/>
+    <stop offset="42%" stop-color="#2272CC"/>
+    <stop offset="62%" stop-color="#0E4A9A"/>
+    <stop offset="80%" stop-color="#082E6E"/>
+    <stop offset="100%" stop-color="#030F2E"/>
+  </radialGradient>
+  <radialGradient id="earthAtmos" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#60B8FF" stop-opacity="0"/>
+    <stop offset="60%" stop-color="#4499EE" stop-opacity="0"/>
+    <stop offset="72%" stop-color="#3388DD" stop-opacity="0.28"/>
+    <stop offset="82%" stop-color="#5599EE" stop-opacity="0.42"/>
+    <stop offset="90%" stop-color="#88CCFF" stop-opacity="0.22"/>
+    <stop offset="100%" stop-color="#AADDFF" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="earthOuterGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#4488CC" stop-opacity="0"/>
+    <stop offset="65%" stop-color="#3377BB" stop-opacity="0"/>
+    <stop offset="78%" stop-color="#2266AA" stop-opacity="0.1"/>
+    <stop offset="90%" stop-color="#4499CC" stop-opacity="0.05"/>
+    <stop offset="100%" stop-color="#66AADD" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="earthLimb" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="58%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="78%" stop-color="#000A18" stop-opacity="0.38"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.85"/>
+  </radialGradient>
+  <filter id="earthLand" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence type="turbulence" baseFrequency="0.028 0.022" numOctaves="7" seed="42" result="t"/>
+    <feColorMatrix type="matrix"
+      values="0   2.5 0   0  -0.8
+              0.3 1.8 0.2 0  -0.5
+              0   0.5 0.8 0  -0.2
+              0   0   0   8  -4.2"
+      in="t" result="land"/>
+    <feComposite in="land" in2="SourceGraphic" operator="in" result="masked"/>
+    <feBlend in="SourceGraphic" in2="masked" mode="multiply" result="blended"/>
+    <feColorMatrix type="matrix"
+      values="0.7  0.4  0.1  0  0.05
+              0.2  0.85 0.15 0  0.08
+              0.05 0.2  0.6  0  0.1
+              0    0    0    1  0"
+      in="blended"/>
+  </filter>
+  <filter id="earthClouds" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.016 0.012" numOctaves="6" seed="8" result="cn"/>
+    <feColorMatrix type="matrix"
+      values="0  0  0  0  1
+              0  0  0  0  1
+              0  0  0  0  1
+              0  0  0  10 -5.5"
+      in="cn" result="clouds"/>
+    <feComposite in="clouds" in2="SourceGraphic" operator="in"/>
+  </filter>
+  <filter id="earthGlowBlur" x="-35%" y="-35%" width="170%" height="170%">
+    <feGaussianBlur stdDeviation="20"/>
+  </filter>
+  <filter id="atmosBlur" x="-25%" y="-25%" width="150%" height="150%">
+    <feGaussianBlur stdDeviation="12"/>
+  </filter>
+  <clipPath id="earthClip"><circle cx="450" cy="450" r="270"/></clipPath>
+  <radialGradient id="earthHighlight" cx="30%" cy="26%" r="46%">
+    <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.42"/>
+    <stop offset="38%" stop-color="#C8E8FF" stop-opacity="0.15"/>
+    <stop offset="100%" stop-color="#80B8FF" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="earthShadow" cx="72%" cy="68%" r="46%">
+    <stop offset="0%" stop-color="#000408" stop-opacity="0.72"/>
+    <stop offset="52%" stop-color="#000408" stop-opacity="0.28"/>
+    <stop offset="100%" stop-color="#000408" stop-opacity="0"/>
+  </radialGradient>
+  <!-- Ice caps -->
+  <radialGradient id="northPole" cx="50%" cy="0%" r="60%">
+    <stop offset="0%" stop-color="#EEEEFF" stop-opacity="0.92"/>
+    <stop offset="55%" stop-color="#DDEEFF" stop-opacity="0.5"/>
+    <stop offset="100%" stop-color="#CCDDFF" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="southPole" cx="50%" cy="100%" r="60%">
+    <stop offset="0%" stop-color="#EEEEFF" stop-opacity="0.88"/>
+    <stop offset="50%" stop-color="#DDEEFF" stop-opacity="0.45"/>
+    <stop offset="100%" stop-color="#CCDDFF" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<ellipse cx="450" cy="450" rx="310" ry="310" fill="#3388CC" filter="url(#earthGlowBlur)" opacity="0.2"/>
+<circle cx="450" cy="450" r="270" fill="url(#earthOcean)"/>
+<circle cx="450" cy="450" r="270" fill="url(#earthOcean)" filter="url(#earthLand)" clip-path="url(#earthClip)" opacity="0.95"/>
+<!-- Cloud layer -->
+<circle cx="450" cy="450" r="270" fill="white" filter="url(#earthClouds)" clip-path="url(#earthClip)" opacity="0.55"/>
+<!-- Polar ice -->
+<ellipse cx="450" cy="185" rx="140" ry="80" fill="url(#northPole)" clip-path="url(#earthClip)"/>
+<ellipse cx="450" cy="715" rx="130" ry="70" fill="url(#southPole)" clip-path="url(#earthClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#earthShadow)" clip-path="url(#earthClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#earthHighlight)" clip-path="url(#earthClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#earthLimb)"/>
+<circle cx="450" cy="450" r="282" fill="url(#earthAtmos)" filter="url(#atmosBlur)" opacity="0.9"/>
+<circle cx="450" cy="450" r="298" fill="url(#earthOuterGlow)" filter="url(#earthGlowBlur)" opacity="0.7"/>
+</svg>

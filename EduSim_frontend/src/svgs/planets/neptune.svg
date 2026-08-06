@@ -1,0 +1,122 @@
+<svg width="560" height="560" viewBox="170 170 560 560" xmlns="http://www.w3.org/2000/svg">
+<title>Neptune</title>
+<defs>
+  <radialGradient id="neptuneCore" cx="40%" cy="36%" r="62%">
+    <stop offset="0%" stop-color="#C0D8FF"/>
+    <stop offset="18%" stop-color="#7090E8"/>
+    <stop offset="38%" stop-color="#3050CC"/>
+    <stop offset="58%" stop-color="#1028A8"/>
+    <stop offset="76%" stop-color="#080E78"/>
+    <stop offset="100%" stop-color="#020548"/>
+  </radialGradient>
+  <radialGradient id="neptuneAtmos" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#3060E8" stop-opacity="0"/>
+    <stop offset="58%" stop-color="#2040C8" stop-opacity="0"/>
+    <stop offset="70%" stop-color="#1830B8" stop-opacity="0.28"/>
+    <stop offset="80%" stop-color="#3060D8" stop-opacity="0.42"/>
+    <stop offset="90%" stop-color="#5090E8" stop-opacity="0.2"/>
+    <stop offset="100%" stop-color="#80B0FF" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="neptuneOuterGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#1840C0" stop-opacity="0"/>
+    <stop offset="65%" stop-color="#1030A0" stop-opacity="0"/>
+    <stop offset="78%" stop-color="#0820A0" stop-opacity="0.12"/>
+    <stop offset="90%" stop-color="#2050C0" stop-opacity="0.06"/>
+    <stop offset="100%" stop-color="#4070D8" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="neptuneLimb" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="55%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="76%" stop-color="#000510" stop-opacity="0.4"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.9"/>
+  </radialGradient>
+  <filter id="neptuneBands" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence type="turbulence" baseFrequency="0.014 0.038" numOctaves="8" seed="29" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="24" xChannelSelector="R" yChannelSelector="G" result="disp"/>
+    <feColorMatrix type="matrix"
+      values="0.5  0.15 0.6  0  0.02
+              0.1  0.5  0.8  0  0.04
+              0.05 0.1  1.15 0  0.06
+              0    0    0    1  0"
+      in="disp"/>
+  </filter>
+  <filter id="neptuneGlowBlur" x="-38%" y="-38%" width="176%" height="176%">
+    <feGaussianBlur stdDeviation="24"/>
+  </filter>
+  <filter id="neptuneAtmosBlur" x="-25%" y="-25%" width="150%" height="150%">
+    <feGaussianBlur stdDeviation="14"/>
+  </filter>
+  <clipPath id="neptuneClip"><circle cx="450" cy="450" r="245"/></clipPath>
+  <radialGradient id="neptuneHighlight" cx="30%" cy="26%" r="46%">
+    <stop offset="0%" stop-color="#D0E8FF" stop-opacity="0.5"/>
+    <stop offset="40%" stop-color="#90B8FF" stop-opacity="0.18"/>
+    <stop offset="100%" stop-color="#3060CC" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="neptuneShadow" cx="72%" cy="68%" r="46%">
+    <stop offset="0%" stop-color="#000008" stop-opacity="0.74"/>
+    <stop offset="52%" stop-color="#000008" stop-opacity="0.28"/>
+    <stop offset="100%" stop-color="#000008" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="nBand1" x1="0%" y1="0%" x2="100%" y2="5%">
+    <stop offset="0%" stop-color="#0C20A0" stop-opacity="0.5"/>
+    <stop offset="35%" stop-color="#1030B8" stop-opacity="0.68"/>
+    <stop offset="65%" stop-color="#0C24A8" stop-opacity="0.6"/>
+    <stop offset="100%" stop-color="#0C20A0" stop-opacity="0.5"/>
+  </linearGradient>
+  <linearGradient id="nBand2" x1="0%" y1="0%" x2="100%" y2="-4%">
+    <stop offset="0%" stop-color="#6090E8" stop-opacity="0.35"/>
+    <stop offset="40%" stop-color="#70A0F0" stop-opacity="0.5"/>
+    <stop offset="70%" stop-color="#5888E0" stop-opacity="0.4"/>
+    <stop offset="100%" stop-color="#6090E8" stop-opacity="0.35"/>
+  </linearGradient>
+  <linearGradient id="nBand3" x1="0%" y1="0%" x2="100%" y2="3%">
+    <stop offset="0%" stop-color="#0818C0" stop-opacity="0.6"/>
+    <stop offset="45%" stop-color="#0C22CC" stop-opacity="0.75"/>
+    <stop offset="100%" stop-color="#0818C0" stop-opacity="0.6"/>
+  </linearGradient>
+  <!-- Great Dark Spot -->
+  <radialGradient id="gds" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#000428" stop-opacity="0.92"/>
+    <stop offset="40%" stop-color="#040C50" stop-opacity="0.75"/>
+    <stop offset="70%" stop-color="#0818A0" stop-opacity="0.4"/>
+    <stop offset="100%" stop-color="#2040C0" stop-opacity="0"/>
+  </radialGradient>
+  <!-- White scooter cloud -->
+  <radialGradient id="scooter" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#C8E0FF" stop-opacity="0.85"/>
+    <stop offset="55%" stop-color="#A0C4FF" stop-opacity="0.45"/>
+    <stop offset="100%" stop-color="#80A8FF" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<!-- Outer glow -->
+<ellipse cx="450" cy="450" rx="308" ry="308" fill="#1840C8" filter="url(#neptuneGlowBlur)" opacity="0.22"/>
+<!-- Planet disc -->
+<circle cx="450" cy="450" r="245" fill="url(#neptuneCore)"/>
+<circle cx="450" cy="450" r="245" fill="url(#neptuneCore)" filter="url(#neptuneBands)" clip-path="url(#neptuneClip)" opacity="0.88"/>
+<!-- Cloud bands -->
+<rect x="205" y="288" width="490" height="24" fill="url(#nBand3)" clip-path="url(#neptuneClip)"/>
+<rect x="205" y="318" width="490" height="14" fill="url(#nBand2)" clip-path="url(#neptuneClip)" opacity="0.65"/>
+<rect x="205" y="338" width="490" height="28" fill="url(#nBand1)" clip-path="url(#neptuneClip)"/>
+<rect x="205" y="372" width="490" height="14" fill="url(#nBand2)" clip-path="url(#neptuneClip)" opacity="0.55"/>
+<rect x="205" y="392" width="490" height="30" fill="url(#nBand3)" clip-path="url(#neptuneClip)" opacity="0.88"/>
+<rect x="205" y="428" width="490" height="14" fill="url(#nBand2)" clip-path="url(#neptuneClip)" opacity="0.5"/>
+<rect x="205" y="448" width="490" height="26" fill="url(#nBand1)" clip-path="url(#neptuneClip)" opacity="0.82"/>
+<rect x="205" y="480" width="490" height="16" fill="url(#nBand2)" clip-path="url(#neptuneClip)" opacity="0.55"/>
+<rect x="205" y="502" width="490" height="24" fill="url(#nBand3)" clip-path="url(#neptuneClip)" opacity="0.78"/>
+<rect x="205" y="532" width="490" height="14" fill="url(#nBand2)" clip-path="url(#neptuneClip)" opacity="0.5"/>
+<rect x="205" y="552" width="490" height="26" fill="url(#nBand1)" clip-path="url(#neptuneClip)" opacity="0.72"/>
+<rect x="205" y="584" width="490" height="16" fill="url(#nBand2)" clip-path="url(#neptuneClip)" opacity="0.48"/>
+<!-- Great Dark Spot -->
+<ellipse cx="380" cy="462" rx="58" ry="38" fill="url(#gds)" clip-path="url(#neptuneClip)"/>
+<!-- Scooter cloud -->
+<ellipse cx="510" cy="530" rx="28" ry="16" fill="url(#scooter)" clip-path="url(#neptuneClip)"/>
+<ellipse cx="310" cy="388" rx="18" ry="10" fill="url(#scooter)" clip-path="url(#neptuneClip)" opacity="0.7"/>
+<!-- Small bright cloud streaks -->
+<ellipse cx="560" cy="422" rx="32" ry="8" fill="#B0CCFF" clip-path="url(#neptuneClip)" opacity="0.35"/>
+<ellipse cx="340" cy="518" rx="24" ry="6" fill="#A0C0FF" clip-path="url(#neptuneClip)" opacity="0.28"/>
+<circle cx="450" cy="450" r="245" fill="url(#neptuneShadow)" clip-path="url(#neptuneClip)"/>
+<circle cx="450" cy="450" r="245" fill="url(#neptuneHighlight)" clip-path="url(#neptuneClip)"/>
+<circle cx="450" cy="450" r="245" fill="url(#neptuneLimb)"/>
+<circle cx="450" cy="450" r="258" fill="url(#neptuneAtmos)" filter="url(#neptuneAtmosBlur)" opacity="0.9"/>
+<circle cx="450" cy="450" r="274" fill="url(#neptuneOuterGlow)" filter="url(#neptuneGlowBlur)" opacity="0.7"/>
+</svg>

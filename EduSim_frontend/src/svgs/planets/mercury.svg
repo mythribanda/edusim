@@ -1,0 +1,68 @@
+<svg width="560" height="560" viewBox="170 170 560 560" xmlns="http://www.w3.org/2000/svg">
+<title>Mercury</title>
+<defs>
+  <radialGradient id="mercuryCore" cx="38%" cy="35%" r="60%">
+    <stop offset="0%" stop-color="#E8D5B0"/>
+    <stop offset="18%" stop-color="#C9A87A"/>
+    <stop offset="38%" stop-color="#A07850"/>
+    <stop offset="58%" stop-color="#7A5535"/>
+    <stop offset="78%" stop-color="#4E3320"/>
+    <stop offset="100%" stop-color="#2A1A0E"/>
+  </radialGradient>
+  <radialGradient id="mercuryLimb" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="82%" stop-color="#1A0D00" stop-opacity="0.5"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.88"/>
+  </radialGradient>
+  <radialGradient id="mercuryAtmos" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#C8A060" stop-opacity="0"/>
+    <stop offset="62%" stop-color="#C8A060" stop-opacity="0"/>
+    <stop offset="76%" stop-color="#B08040" stop-opacity="0.12"/>
+    <stop offset="88%" stop-color="#906020" stop-opacity="0.07"/>
+    <stop offset="100%" stop-color="#704010" stop-opacity="0"/>
+  </radialGradient>
+  <filter id="mercSurface" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.055 0.048" numOctaves="7" seed="11" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G" result="disp"/>
+    <feColorMatrix type="matrix"
+      values="1.05 0.08 0    0  0.02
+              0.6  0.7  0.05 0  0.01
+              0.3  0.2  0.4  0  0
+              0    0    0    1  0"
+      in="disp"/>
+  </filter>
+  <filter id="mercCrater" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="turbulence" baseFrequency="0.08 0.07" numOctaves="5" seed="23" result="t"/>
+    <feColorMatrix type="matrix"
+      values="2   0   0   0  -0.6
+              1.2 0   0   0  -0.3
+              0.5 0   0   0  -0.1
+              0   0   0   6  -3"
+      in="t" result="craters"/>
+    <feComposite in="craters" in2="SourceGraphic" operator="in"/>
+  </filter>
+  <filter id="mercGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="8"/>
+  </filter>
+  <clipPath id="mercClip"><circle cx="450" cy="450" r="270"/></clipPath>
+  <radialGradient id="mercHighlight" cx="32%" cy="28%" r="42%">
+    <stop offset="0%" stop-color="#F5E8CC" stop-opacity="0.45"/>
+    <stop offset="45%" stop-color="#D4B888" stop-opacity="0.15"/>
+    <stop offset="100%" stop-color="#A07040" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="mercShadow" cx="72%" cy="68%" r="45%">
+    <stop offset="0%" stop-color="#0A0500" stop-opacity="0.7"/>
+    <stop offset="55%" stop-color="#0A0500" stop-opacity="0.3"/>
+    <stop offset="100%" stop-color="#0A0500" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<circle cx="450" cy="450" r="274" fill="#8A6040" filter="url(#mercGlow)" opacity="0.25"/>
+<circle cx="450" cy="450" r="270" fill="url(#mercuryCore)"/>
+<circle cx="450" cy="450" r="270" fill="url(#mercuryCore)" filter="url(#mercSurface)" clip-path="url(#mercClip)" opacity="0.9"/>
+<circle cx="450" cy="450" r="270" fill="url(#mercuryCore)" filter="url(#mercCrater)" clip-path="url(#mercClip)" opacity="0.35"/>
+<circle cx="450" cy="450" r="270" fill="url(#mercShadow)" clip-path="url(#mercClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#mercHighlight)" clip-path="url(#mercClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#mercuryLimb)"/>
+<circle cx="450" cy="450" r="278" fill="url(#mercuryAtmos)" filter="url(#mercGlow)" opacity="0.6"/>
+</svg>

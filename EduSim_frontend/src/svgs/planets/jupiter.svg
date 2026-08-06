@@ -1,0 +1,123 @@
+<svg width="560" height="560" viewBox="170 170 560 560" xmlns="http://www.w3.org/2000/svg">
+<title>Jupiter</title>
+<defs>
+  <radialGradient id="jupiterBase" cx="40%" cy="36%" r="62%">
+    <stop offset="0%" stop-color="#F5E4C8"/>
+    <stop offset="22%" stop-color="#E8C89A"/>
+    <stop offset="44%" stop-color="#D0A070"/>
+    <stop offset="65%" stop-color="#A87040"/>
+    <stop offset="82%" stop-color="#704A20"/>
+    <stop offset="100%" stop-color="#3A2010"/>
+  </radialGradient>
+  <radialGradient id="jupiterLimb" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="55%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="76%" stop-color="#0A0400" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.88"/>
+  </radialGradient>
+  <radialGradient id="jupiterAtmos" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#E8C090" stop-opacity="0"/>
+    <stop offset="58%" stop-color="#D0A060" stop-opacity="0"/>
+    <stop offset="70%" stop-color="#C09050" stop-opacity="0.12"/>
+    <stop offset="82%" stop-color="#D0A868" stop-opacity="0.08"/>
+    <stop offset="100%" stop-color="#E0B880" stop-opacity="0"/>
+  </radialGradient>
+  <filter id="jupiterBands" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence type="turbulence" baseFrequency="0.008 0.055" numOctaves="7" seed="9" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="22" xChannelSelector="R" yChannelSelector="G" result="disp"/>
+    <feColorMatrix type="matrix"
+      values="1.1  0.15 0.05 0  0.05
+              0.55 0.85 0.1  0  0.02
+              0.1  0.15 0.55 0  0
+              0    0    0    1  0"
+      in="disp"/>
+  </filter>
+  <filter id="jupiterGlowBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="20"/>
+  </filter>
+  <filter id="jupiterAtmosBlur" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur stdDeviation="10"/>
+  </filter>
+  <filter id="stormBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <clipPath id="jupiterClip"><circle cx="450" cy="450" r="270"/></clipPath>
+  <radialGradient id="jupiterHighlight" cx="30%" cy="26%" r="46%">
+    <stop offset="0%" stop-color="#FFF8EE" stop-opacity="0.4"/>
+    <stop offset="40%" stop-color="#F5E0C0" stop-opacity="0.14"/>
+    <stop offset="100%" stop-color="#D0A060" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="jupiterShadow" cx="72%" cy="68%" r="46%">
+    <stop offset="0%" stop-color="#080300" stop-opacity="0.68"/>
+    <stop offset="52%" stop-color="#080300" stop-opacity="0.25"/>
+    <stop offset="100%" stop-color="#080300" stop-opacity="0"/>
+  </radialGradient>
+  <!-- Cloud band gradients -->
+  <linearGradient id="band1" x1="0%" y1="0%" x2="100%" y2="5%">
+    <stop offset="0%" stop-color="#9A5520" stop-opacity="0.7"/>
+    <stop offset="25%" stop-color="#B86830" stop-opacity="0.85"/>
+    <stop offset="55%" stop-color="#8A4818" stop-opacity="0.75"/>
+    <stop offset="80%" stop-color="#A05828" stop-opacity="0.7"/>
+    <stop offset="100%" stop-color="#904820" stop-opacity="0.65"/>
+  </linearGradient>
+  <linearGradient id="band2" x1="0%" y1="0%" x2="100%" y2="-3%">
+    <stop offset="0%" stop-color="#C87840" stop-opacity="0.6"/>
+    <stop offset="35%" stop-color="#D88848" stop-opacity="0.75"/>
+    <stop offset="65%" stop-color="#B86830" stop-opacity="0.65"/>
+    <stop offset="100%" stop-color="#C87840" stop-opacity="0.6"/>
+  </linearGradient>
+  <linearGradient id="band3" x1="0%" y1="0%" x2="100%" y2="4%">
+    <stop offset="0%" stop-color="#7A3810" stop-opacity="0.65"/>
+    <stop offset="30%" stop-color="#8A4820" stop-opacity="0.8"/>
+    <stop offset="60%" stop-color="#6A2E0C" stop-opacity="0.7"/>
+    <stop offset="100%" stop-color="#7A3810" stop-opacity="0.6"/>
+  </linearGradient>
+  <linearGradient id="band4" x1="0%" y1="0%" x2="100%" y2="-5%">
+    <stop offset="0%" stop-color="#E8A860" stop-opacity="0.5"/>
+    <stop offset="40%" stop-color="#F0B870" stop-opacity="0.65"/>
+    <stop offset="70%" stop-color="#D89850" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#E8A860" stop-opacity="0.5"/>
+  </linearGradient>
+  <!-- Great Red Spot -->
+  <radialGradient id="grs" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#C82808" stop-opacity="0.9"/>
+    <stop offset="35%" stop-color="#B02010" stop-opacity="0.8"/>
+    <stop offset="65%" stop-color="#D04020" stop-opacity="0.6"/>
+    <stop offset="100%" stop-color="#E06030" stop-opacity="0.1"/>
+  </radialGradient>
+  <radialGradient id="grsInner" cx="45%" cy="42%" r="45%">
+    <stop offset="0%" stop-color="#FF5030" stop-opacity="0.6"/>
+    <stop offset="55%" stop-color="#CC2810" stop-opacity="0.4"/>
+    <stop offset="100%" stop-color="#AA1808" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<ellipse cx="450" cy="450" rx="310" ry="310" fill="#C08040" filter="url(#jupiterGlowBlur)" opacity="0.18"/>
+<circle cx="450" cy="450" r="270" fill="url(#jupiterBase)"/>
+<circle cx="450" cy="450" r="270" fill="url(#jupiterBase)" filter="url(#jupiterBands)" clip-path="url(#jupiterClip)" opacity="0.88"/>
+<!-- Cloud bands -->
+<rect x="180" y="232" width="540" height="34" fill="url(#band3)" clip-path="url(#jupiterClip)"/>
+<rect x="180" y="270" width="540" height="22" fill="url(#band2)" clip-path="url(#jupiterClip)" opacity="0.7"/>
+<rect x="180" y="296" width="540" height="38" fill="url(#band1)" clip-path="url(#jupiterClip)"/>
+<rect x="180" y="338" width="540" height="20" fill="url(#band4)" clip-path="url(#jupiterClip)" opacity="0.6"/>
+<rect x="180" y="362" width="540" height="42" fill="url(#band3)" clip-path="url(#jupiterClip)" opacity="0.85"/>
+<rect x="180" y="408" width="540" height="18" fill="url(#band2)" clip-path="url(#jupiterClip)" opacity="0.5"/>
+<rect x="180" y="430" width="540" height="44" fill="url(#band1)" clip-path="url(#jupiterClip)"/>
+<rect x="180" y="478" width="540" height="20" fill="url(#band4)" clip-path="url(#jupiterClip)" opacity="0.55"/>
+<rect x="180" y="502" width="540" height="36" fill="url(#band3)" clip-path="url(#jupiterClip)" opacity="0.8"/>
+<rect x="180" y="542" width="540" height="22" fill="url(#band2)" clip-path="url(#jupiterClip)" opacity="0.6"/>
+<rect x="180" y="568" width="540" height="34" fill="url(#band1)" clip-path="url(#jupiterClip)" opacity="0.75"/>
+<rect x="180" y="606" width="540" height="20" fill="url(#band4)" clip-path="url(#jupiterClip)" opacity="0.5"/>
+<rect x="180" y="630" width="540" height="30" fill="url(#band3)" clip-path="url(#jupiterClip)" opacity="0.7"/>
+<!-- Great Red Spot -->
+<ellipse cx="360" cy="508" rx="62" ry="42" fill="url(#grs)" clip-path="url(#jupiterClip)"/>
+<ellipse cx="358" cy="506" rx="44" ry="28" fill="url(#grsInner)" clip-path="url(#jupiterClip)"/>
+<ellipse cx="352" cy="502" rx="22" ry="14" fill="#FF6040" clip-path="url(#jupiterClip)" opacity="0.35"/>
+<!-- Storm swirls -->
+<circle cx="540" cy="340" r="16" fill="none" stroke="#D08040" stroke-width="3" clip-path="url(#jupiterClip)" opacity="0.5"/>
+<circle cx="320" cy="378" r="10" fill="none" stroke="#C07030" stroke-width="2" clip-path="url(#jupiterClip)" opacity="0.4"/>
+<circle cx="580" cy="480" r="12" fill="none" stroke="#B05820" stroke-width="2.5" clip-path="url(#jupiterClip)" opacity="0.45"/>
+<circle cx="450" cy="450" r="270" fill="url(#jupiterShadow)" clip-path="url(#jupiterClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#jupiterHighlight)" clip-path="url(#jupiterClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#jupiterLimb)"/>
+<circle cx="450" cy="450" r="282" fill="url(#jupiterAtmos)" filter="url(#jupiterAtmosBlur)" opacity="0.7"/>
+</svg>

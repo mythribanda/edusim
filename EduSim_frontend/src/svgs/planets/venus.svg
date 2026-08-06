@@ -1,0 +1,86 @@
+<svg width="560" height="560" viewBox="170 170 560 560" xmlns="http://www.w3.org/2000/svg">
+<title>Venus</title>
+<defs>
+  <radialGradient id="venusCore" cx="40%" cy="36%" r="62%">
+    <stop offset="0%" stop-color="#FFF4CC"/>
+    <stop offset="15%" stop-color="#F5D880"/>
+    <stop offset="32%" stop-color="#E8B840"/>
+    <stop offset="52%" stop-color="#D49020"/>
+    <stop offset="70%" stop-color="#B06810"/>
+    <stop offset="86%" stop-color="#804408"/>
+    <stop offset="100%" stop-color="#4A2404"/>
+  </radialGradient>
+  <radialGradient id="venusAtmos" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#FFE880" stop-opacity="0"/>
+    <stop offset="58%" stop-color="#FFD840" stop-opacity="0"/>
+    <stop offset="70%" stop-color="#FFCC20" stop-opacity="0.22"/>
+    <stop offset="80%" stop-color="#FFB800" stop-opacity="0.35"/>
+    <stop offset="90%" stop-color="#FF9900" stop-opacity="0.2"/>
+    <stop offset="100%" stop-color="#FF7700" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="venusGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#FFE060" stop-opacity="0"/>
+    <stop offset="62%" stop-color="#FFD040" stop-opacity="0"/>
+    <stop offset="75%" stop-color="#FFBB00" stop-opacity="0.14"/>
+    <stop offset="88%" stop-color="#FF9900" stop-opacity="0.07"/>
+    <stop offset="100%" stop-color="#FF8800" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="venusLimb" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="58%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="78%" stop-color="#180A00" stop-opacity="0.4"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.82"/>
+  </radialGradient>
+  <filter id="venusClouds" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.018 0.012" numOctaves="8" seed="5" result="cloudNoise"/>
+    <feDisplacementMap in="SourceGraphic" in2="cloudNoise" scale="30" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+    <feColorMatrix type="matrix"
+      values="1.2  0.2  0.05 0  0.08
+              0.6  1.0  0.1  0  0.04
+              0    0.1  0.5  0  0
+              0    0    0    1  0"
+      in="displaced"/>
+  </filter>
+  <filter id="venusAtmosBlur" x="-25%" y="-25%" width="150%" height="150%">
+    <feGaussianBlur stdDeviation="14"/>
+  </filter>
+  <filter id="venusGlowBlur" x="-40%" y="-40%" width="180%" height="180%">
+    <feGaussianBlur stdDeviation="28"/>
+  </filter>
+  <clipPath id="venusClip"><circle cx="450" cy="450" r="270"/></clipPath>
+  <radialGradient id="venusHighlight" cx="30%" cy="26%" r="48%">
+    <stop offset="0%" stop-color="#FFFCE0" stop-opacity="0.5"/>
+    <stop offset="40%" stop-color="#FFF0A0" stop-opacity="0.18"/>
+    <stop offset="100%" stop-color="#FFD040" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="venusShadow" cx="74%" cy="70%" r="48%">
+    <stop offset="0%" stop-color="#080300" stop-opacity="0.65"/>
+    <stop offset="55%" stop-color="#080300" stop-opacity="0.25"/>
+    <stop offset="100%" stop-color="#080300" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="cloudBand1" x1="0%" y1="0%" x2="100%" y2="15%">
+    <stop offset="0%" stop-color="#FFF0A0" stop-opacity="0.18"/>
+    <stop offset="30%" stop-color="#FFE060" stop-opacity="0.25"/>
+    <stop offset="60%" stop-color="#FFD040" stop-opacity="0.15"/>
+    <stop offset="100%" stop-color="#FFC820" stop-opacity="0.08"/>
+  </linearGradient>
+  <linearGradient id="cloudBand2" x1="0%" y1="0%" x2="100%" y2="8%">
+    <stop offset="0%" stop-color="#FFEE90" stop-opacity="0.12"/>
+    <stop offset="50%" stop-color="#FFE050" stop-opacity="0.2"/>
+    <stop offset="100%" stop-color="#FFD020" stop-opacity="0.1"/>
+  </linearGradient>
+</defs>
+<ellipse cx="450" cy="450" rx="310" ry="310" fill="#FFB800" filter="url(#venusGlowBlur)" opacity="0.22"/>
+<circle cx="450" cy="450" r="270" fill="url(#venusCore)"/>
+<circle cx="450" cy="450" r="270" fill="url(#venusCore)" filter="url(#venusClouds)" clip-path="url(#venusClip)" opacity="0.88"/>
+<!-- Cloud band layers -->
+<rect x="180" y="340" width="540" height="55" fill="url(#cloudBand1)" clip-path="url(#venusClip)"/>
+<rect x="180" y="430" width="540" height="40" fill="url(#cloudBand2)" clip-path="url(#venusClip)"/>
+<rect x="180" y="500" width="540" height="50" fill="url(#cloudBand1)" clip-path="url(#venusClip)" opacity="0.7"/>
+<rect x="180" y="280" width="540" height="38" fill="url(#cloudBand2)" clip-path="url(#venusClip)" opacity="0.6"/>
+<circle cx="450" cy="450" r="270" fill="url(#venusShadow)" clip-path="url(#venusClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#venusHighlight)" clip-path="url(#venusClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#venusLimb)"/>
+<circle cx="450" cy="450" r="282" fill="url(#venusAtmos)" filter="url(#venusAtmosBlur)" opacity="0.8"/>
+<circle cx="450" cy="450" r="295" fill="url(#venusGlow)" filter="url(#venusGlowBlur)" opacity="0.6"/>
+</svg>

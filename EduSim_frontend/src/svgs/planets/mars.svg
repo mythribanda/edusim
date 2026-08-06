@@ -1,0 +1,106 @@
+<svg width="560" height="560" viewBox="170 170 560 560" xmlns="http://www.w3.org/2000/svg">
+<title>Mars</title>
+<defs>
+  <radialGradient id="marsCore" cx="38%" cy="34%" r="62%">
+    <stop offset="0%" stop-color="#F0A878"/>
+    <stop offset="18%" stop-color="#D87848"/>
+    <stop offset="38%" stop-color="#B85028"/>
+    <stop offset="58%" stop-color="#8C3018"/>
+    <stop offset="78%" stop-color="#5E1C0A"/>
+    <stop offset="100%" stop-color="#2E0C04"/>
+  </radialGradient>
+  <radialGradient id="marsAtmos" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#FF8844" stop-opacity="0"/>
+    <stop offset="60%" stop-color="#DD5522" stop-opacity="0"/>
+    <stop offset="72%" stop-color="#CC4411" stop-opacity="0.15"/>
+    <stop offset="82%" stop-color="#DD6633" stop-opacity="0.22"/>
+    <stop offset="90%" stop-color="#EE8855" stop-opacity="0.1"/>
+    <stop offset="100%" stop-color="#FFAA77" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="marsGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#CC4400" stop-opacity="0"/>
+    <stop offset="65%" stop-color="#BB3300" stop-opacity="0"/>
+    <stop offset="78%" stop-color="#AA3300" stop-opacity="0.08"/>
+    <stop offset="90%" stop-color="#CC5522" stop-opacity="0.04"/>
+    <stop offset="100%" stop-color="#EE7744" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="marsLimb" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="58%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="78%" stop-color="#1A0500" stop-opacity="0.45"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.88"/>
+  </radialGradient>
+  <filter id="marsSurface" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence type="turbulence" baseFrequency="0.032 0.026" numOctaves="8" seed="17" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="18" xChannelSelector="R" yChannelSelector="G" result="disp"/>
+    <feColorMatrix type="matrix"
+      values="1.25 0.2  0.05 0  0.04
+              0.5  0.75 0.05 0  0
+              0.1  0.1  0.4  0  0
+              0    0    0    1  0"
+      in="disp"/>
+  </filter>
+  <filter id="marsCraters" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="turbulence" baseFrequency="0.065 0.058" numOctaves="4" seed="31" result="t"/>
+    <feColorMatrix type="matrix"
+      values="3   0   0   0  -1.2
+              1.5 0   0   0  -0.5
+              0.5 0   0   0  -0.1
+              0   0   0   7  -4"
+      in="t" result="craters"/>
+    <feComposite in="craters" in2="SourceGraphic" operator="in"/>
+  </filter>
+  <filter id="marsGlowBlur" x="-35%" y="-35%" width="170%" height="170%">
+    <feGaussianBlur stdDeviation="18"/>
+  </filter>
+  <filter id="marsAtmosBlur" x="-25%" y="-25%" width="150%" height="150%">
+    <feGaussianBlur stdDeviation="12"/>
+  </filter>
+  <clipPath id="marsClip"><circle cx="450" cy="450" r="270"/></clipPath>
+  <radialGradient id="marsHighlight" cx="30%" cy="26%" r="44%">
+    <stop offset="0%" stop-color="#FFD0A0" stop-opacity="0.48"/>
+    <stop offset="42%" stop-color="#F0A870" stop-opacity="0.15"/>
+    <stop offset="100%" stop-color="#C06030" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="marsShadow" cx="73%" cy="69%" r="46%">
+    <stop offset="0%" stop-color="#0A0200" stop-opacity="0.72"/>
+    <stop offset="50%" stop-color="#0A0200" stop-opacity="0.28"/>
+    <stop offset="100%" stop-color="#0A0200" stop-opacity="0"/>
+  </radialGradient>
+  <!-- Polar ice -->
+  <radialGradient id="marsNorthPole" cx="50%" cy="0%" r="55%">
+    <stop offset="0%" stop-color="#EEF0FF" stop-opacity="0.85"/>
+    <stop offset="50%" stop-color="#DDEEFF" stop-opacity="0.38"/>
+    <stop offset="100%" stop-color="#CCEEFF" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="marsSouthPole" cx="50%" cy="100%" r="45%">
+    <stop offset="0%" stop-color="#F0F2FF" stop-opacity="0.78"/>
+    <stop offset="45%" stop-color="#E0EEFF" stop-opacity="0.3"/>
+    <stop offset="100%" stop-color="#CCDDFF" stop-opacity="0"/>
+  </radialGradient>
+  <!-- Valles Marineris tone -->
+  <linearGradient id="vallesGrad" x1="20%" y1="45%" x2="80%" y2="58%">
+    <stop offset="0%" stop-color="#6A2808" stop-opacity="0.5"/>
+    <stop offset="40%" stop-color="#7A3010" stop-opacity="0.7"/>
+    <stop offset="70%" stop-color="#5A2206" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#6A2808" stop-opacity="0.3"/>
+  </linearGradient>
+</defs>
+<ellipse cx="450" cy="450" rx="305" ry="305" fill="#CC4422" filter="url(#marsGlowBlur)" opacity="0.2"/>
+<circle cx="450" cy="450" r="270" fill="url(#marsCore)"/>
+<circle cx="450" cy="450" r="270" fill="url(#marsCore)" filter="url(#marsSurface)" clip-path="url(#marsClip)" opacity="0.9"/>
+<circle cx="450" cy="450" r="270" fill="url(#marsCore)" filter="url(#marsCraters)" clip-path="url(#marsClip)" opacity="0.3"/>
+<!-- Valles Marineris canyon system -->
+<ellipse cx="450" cy="468" rx="195" ry="18" fill="url(#vallesGrad)" clip-path="url(#marsClip)"/>
+<ellipse cx="448" cy="460" rx="160" ry="10" fill="#5A2006" clip-path="url(#marsClip)" opacity="0.45"/>
+<!-- Polar caps -->
+<ellipse cx="450" cy="195" rx="105" ry="58" fill="url(#marsNorthPole)" clip-path="url(#marsClip)"/>
+<ellipse cx="450" cy="706" rx="88" ry="48" fill="url(#marsSouthPole)" clip-path="url(#marsClip)"/>
+<!-- Olympus Mons shadow -->
+<ellipse cx="320" cy="380" rx="44" ry="36" fill="#4A1A06" clip-path="url(#marsClip)" opacity="0.35"/>
+<circle cx="450" cy="450" r="270" fill="url(#marsShadow)" clip-path="url(#marsClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#marsHighlight)" clip-path="url(#marsClip)"/>
+<circle cx="450" cy="450" r="270" fill="url(#marsLimb)"/>
+<circle cx="450" cy="450" r="282" fill="url(#marsAtmos)" filter="url(#marsAtmosBlur)" opacity="0.85"/>
+<circle cx="450" cy="450" r="296" fill="url(#marsGlow)" filter="url(#marsGlowBlur)" opacity="0.6"/>
+</svg>
