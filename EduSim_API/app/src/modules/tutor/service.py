@@ -12,6 +12,9 @@ import faiss
 from sentence_transformers import SentenceTransformer
 import os
 from dotenv import load_dotenv
+import logging
+
+logger = logging.getLogger("EduSim.tutor")
 
 
 load_dotenv(Path(__file__).resolve().parents[4] / ".env")
@@ -57,7 +60,7 @@ async def _summarize_chat_history_async(turns_to_summarize: list[dict[str, str]]
         )
         return summary.strip() if summary else ""
     except Exception as e:
-        print(f"[Summarizer Error] Failed to generate history summary: {e}")
+        logger.error("[Summarizer] Failed to generate history summary: %s", e)
         return ""
 
 
@@ -148,9 +151,9 @@ async def analyze_and_update_profile_task(db_session_factory, user_id, query: st
                     mastered_topics=mastered_topics,
                     misconceptions=misconceptions
                 )
-                print(f"[Profile Update] Successfully updated student profile for user: {user_id}")
+                logger.info("[Profile Update] Successfully updated student profile for user: %s", user_id)
     except Exception as e:
-        print(f"[Profile Update Error] Failed to update profile: {e}")
+        logger.error("[Profile Update] Failed to update profile: %s", e)
     finally:
         db.close()
 
@@ -204,7 +207,7 @@ async def check_query_subject_relevance(query: str) -> str:
             if "out_of_context" in cleaned:
                 return "out_of_context"
     except Exception as e:
-        print(f"[Relevance Check Error] {e}")
+        logger.error("[Relevance Check] %s", e)
         
     return "academic"  # Fallback to academic if something fails, to avoid false refusals
 
@@ -515,7 +518,7 @@ async def analyze_tutor_query(
             context += f"{content}\n\n"
             
     retrieval_time = time.perf_counter() - retrieval_start
-    print(f"[RAG] {retrieval_time:.2f}s (Subject: {target_subject})")
+    logger.info("[RAG] %.2fs (Subject: %s)", retrieval_time, target_subject)
     
     if not context.strip():
         context = "No textbook context available."
@@ -549,10 +552,10 @@ async def analyze_tutor_query(
         rag_explanation = await generate_explanation_async(query, full_context, fallback_mode, history=history)
     
     llm_time = time.perf_counter() - llm_start
-    print(f"[LLM] {llm_time:.2f}s")
+    logger.info("[LLM] %.2fs", llm_time)
     
     total_time = time.perf_counter() - request_started
-    print(f"[TOTAL] {total_time:.2f}s")
+    logger.info("[TOTAL] %.2fs", total_time)
     
     formulas = structured.get("formulas", [])
     related_concepts = _dedupe_related_topics(structured.get("related_concepts", []), max_items=_MAX_RELATED_TOPICS)
@@ -600,10 +603,10 @@ async def explain_simulation_query(query: str, history: list[dict[str, str]] | N
         rag_explanation = "Failed to generate simulation explanation."
     
     llm_time = time.perf_counter() - llm_start
-    print(f"[Direct LLM Simulation] {llm_time:.2f}s")
+    logger.info("[Direct LLM Simulation] %.2fs", llm_time)
     
     total_time = time.perf_counter() - request_started
-    print(f"[TOTAL Direct Sim] {total_time:.2f}s")
+    logger.info("[TOTAL Direct Sim] %.2fs", total_time)
     
     formulas = structured.get("formulas", [])
     related_concepts = _dedupe_related_topics(structured.get("related_concepts", []), max_items=_MAX_RELATED_TOPICS)
@@ -1113,7 +1116,7 @@ def _load_curriculum() -> Dict[str, Any]:
         else:
             _curriculum_data = {"classes": []}
     except Exception as e:
-        print(f"Failed to load curriculum: {e}")
+        logger.error("Failed to load curriculum: %s", e)
         _curriculum_data = {"classes": []}
     return _curriculum_data
 

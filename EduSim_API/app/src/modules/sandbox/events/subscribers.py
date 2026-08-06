@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.sandbox.events.subscribers")
+
 """
 subscribers.py
 ==============
@@ -23,8 +26,8 @@ class LoggingSubscriber:
 
     def on_event(self, context: EventContext) -> None:
         """Standard callback listener."""
-        print(f"[{self.name}] [F:{context.frame_count}] [{context.source_system.upper()}] "
-              f"Event: '{context.event_type}' (ID: {context.event_id[:8]})")
+        logger.info(f"[{self.name}] [F:{context.frame_count}] [{context.source_system.upper()}] "
+                    f"Event: '{context.event_type}' (ID: {context.event_id[:8]})")
 
 
 class ReplayRecorderSubscriber:

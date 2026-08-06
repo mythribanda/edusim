@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.sandbox.initialization.object_initializer")
+
 """
 object_initializer.py
 =====================
@@ -214,7 +217,7 @@ def initialize_objects(raw_objects: List[Any]) -> List[SandboxObject]:
             try:
                 obj_dict = custom_builder(obj_dict)
             except Exception as e:
-                print(f"Custom builder failed for type {object_type}: {e}")
+                logger.error(f"Custom builder failed for type {object_type}: {e}")
 
         # 5. Core defaults & conversions
         obj_dict = apply_visual_defaults(obj_dict)

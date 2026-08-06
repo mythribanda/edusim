@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.legacy_rag.vector_store")
+
 import faiss
 import numpy as np
 import pickle
@@ -41,7 +44,7 @@ def create_vector_store(
 
         import shutil
 
-        print("\n🔄 Force rebuilding FAISS index...")
+        logger.info("\n🔄 Force rebuilding FAISS index...")
 
         shutil.rmtree(INDEX_PATH)
 
@@ -52,21 +55,21 @@ def create_vector_store(
 
         try:
 
-            print("\n✓ Loading existing FAISS index...")
+            logger.info("\n✓ Loading existing FAISS index...")
 
             index = faiss.read_index(str(INDEX_FILE))
             with open(METADATA_FILE, "rb") as f:
 
                 metadata = pickle.load(f)
 
-            print(f"✓ Loaded {len(metadata)} chunks")
+            logger.info(f"✓ Loaded {len(metadata)} chunks")
 
             return index, metadata
         except Exception as e:
 
-            print(f"\n⚠ Failed to load existing index: {e}")
+            logger.error(f"\n⚠ Failed to load existing index: {e}")
 
-            print("🔄 Rebuilding vector store...")
+            logger.info("🔄 Rebuilding vector store...")
 
             import shutil
 
@@ -75,7 +78,7 @@ def create_vector_store(
     # =====================================================
     # CREATE NEW INDEX
     # =====================================================
-    print("\n✓ Creating new FAISS index...")
+    logger.info("\n✓ Creating new FAISS index...")
 
     INDEX_PATH.mkdir(exist_ok=True)
 
@@ -87,7 +90,7 @@ def create_vector_store(
         for chunk in chunks
     ]
 
-    print(f"✓ Total chunks for embeddings: {len(texts)}")
+    logger.info(f"✓ Total chunks for embeddings: {len(texts)}")
 
     # =====================================================
     # CREATE EMBEDDINGS
@@ -117,7 +120,7 @@ def create_vector_store(
 
     index.add(embeddings)
 
-    print("✓ FAISS index created")
+    logger.info("✓ FAISS index created")
 
     # =====================================================
     # CREATE METADATA
@@ -165,14 +168,14 @@ def create_vector_store(
     # =====================================================
     if metadata:
 
-        print("\n===== SAMPLE METADATA =====")
+        logger.info("\n===== SAMPLE METADATA =====")
 
-        print(f"Subject : {metadata[0]['subject']}")
-        print(f"Chapter : {metadata[0]['chapter']}")
-        print(f"Source  : {metadata[0]['source']}")
-        print(f"Page    : {metadata[0]['page']}")
+        logger.info(f"Subject : {metadata[0]['subject']}")
+        logger.info(f"Chapter : {metadata[0]['chapter']}")
+        logger.info(f"Source  : {metadata[0]['source']}")
+        logger.info(f"Page    : {metadata[0]['page']}")
 
-        print("-" * 50)
+        logger.info("-" * 50)
 
     # =====================================================
     # SAVE INDEX
@@ -186,8 +189,8 @@ def create_vector_store(
     # =====================================================
     # FINAL LOGS
     # =====================================================
-    print(f"\n✓ Saved FAISS index")
+    logger.info(f"\n✓ Saved FAISS index")
 
-    print(f"✓ Total indexed chunks: {len(metadata)}")
+    logger.info(f"✓ Total indexed chunks: {len(metadata)}")
 
     return index, metadata

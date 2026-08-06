@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.sandbox.initialization.sandbox_initializer")
+
 """
 sandbox_initializer.py
 =======================
@@ -49,7 +52,7 @@ class SandboxInitializer:
             try:
                 payload = hook(payload)
             except Exception as e:
-                print(f"Pre-hook failure: {e}")
+                logger.info(f"Pre-hook failure: {e}")
 
         # 2. Run initialization pipeline
         sandbox = self.pipeline.execute(payload)
@@ -59,7 +62,7 @@ class SandboxInitializer:
             try:
                 sandbox = hook(sandbox)
             except Exception as e:
-                print(f"Post-hook failure: {e}")
+                logger.info(f"Post-hook failure: {e}")
 
         # 4. Serialize to final Matter.js / PixiJS contract format
         runtime_payload = RuntimeBuilder.build_runtime_payload(sandbox)
@@ -80,5 +83,5 @@ def initialize_sandbox(raw_payload: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         # Wrap in standardized initialization errors for tutor and API layers
         error_msg = f"Failed to compile sandbox scenario: {e}"
-        print(f"{error_msg}\n{traceback.format_exc()}")
+        logger.error(f"{error_msg}\n{traceback.format_exc()}")
         raise ValueError(error_msg) from e

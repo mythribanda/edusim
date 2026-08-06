@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from datetime import datetime, timezone
@@ -6,6 +7,8 @@ from pathlib import Path
 from threading import Lock
 from typing import Any
 from uuid import uuid4
+
+logger = logging.getLogger("EduSim.simulation_synthesis")
 
 from app.src.modules.legacy_rag.retriever import get_retriever
 from app.src.modules.legacy_rag.generator import generate_llm_text
@@ -102,7 +105,7 @@ def generate_simulation_synthesis(prompt: str, topic: str | None = None):
         # Serialize the master initial JSON payload
         compiled_payload = RuntimeSerializer.serialize_full(store)
     except Exception as compile_err:
-        print(f"⚠️ API Synthesis Compilation/Serialization failed: {compile_err}")
+        logger.error("API Synthesis Compilation/Serialization failed: %s", compile_err)
         compiled_payload = None
 
     simulation_id = str(uuid4())
@@ -192,7 +195,7 @@ def generate_simulation_synthesis_stream(prompt: str, topic: str | None = None):
             # Serialize the master initial JSON payload
             compiled_payload = RuntimeSerializer.serialize_full(store)
         except Exception as compile_err:
-            print(f"⚠️ API Stream Synthesis Compilation/Serialization failed: {compile_err}")
+            logger.error("API Stream Synthesis Compilation/Serialization failed: %s", compile_err)
             compiled_payload = None
 
         item = {

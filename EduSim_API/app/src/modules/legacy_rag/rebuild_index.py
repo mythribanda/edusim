@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.legacy_rag.rebuild_index")
+
 import os
 from .loader import load_all_pdfs
 from .splitter import split_docs
@@ -5,32 +8,32 @@ from .embedder import get_embeddings
 from .vector_store import create_vector_store
 
 def rebuild():
-    print("=========================================")
-    print("Rebuilding RAG Index")
-    print("=========================================")
+    logger.info("=========================================")
+    logger.info("Rebuilding RAG Index")
+    logger.info("=========================================")
     
     # Path relative to project root
     data_dir = "data"
     
-    print(f"\n1. Loading all PDFs from {data_dir}...")
+    logger.info(f"\n1. Loading all PDFs from {data_dir}...")
     docs = load_all_pdfs(data_dir)
-    print(f"Total documents loaded: {len(docs)}")
+    logger.info(f"Total documents loaded: {len(docs)}")
     
     if not docs:
-        print("No documents found. Exiting.")
+        logger.info("No documents found. Exiting.")
         return
         
-    print("\n2. Splitting documents into chunks...")
+    logger.info("\n2. Splitting documents into chunks...")
     chunks = split_docs(docs)
-    print(f"Total chunks created: {len(chunks)}")
+    logger.info(f"Total chunks created: {len(chunks)}")
     
-    print("\n3. Loading embedding model...")
+    logger.info("\n3. Loading embedding model...")
     embeddings_model = get_embeddings()
     
-    print("\n4. Rebuilding vector store (Force Rebuild)...")
+    logger.info("\n4. Rebuilding vector store (Force Rebuild)...")
     index, metadata = create_vector_store(chunks, embeddings_model, force_rebuild=True)
     
-    print("\n[REBUILD] Rebuild complete!")
+    logger.info("\n[REBUILD] Rebuild complete!")
 
 if __name__ == "__main__":
     rebuild()

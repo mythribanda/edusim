@@ -1,5 +1,8 @@
+import logging
 from typing import List, Dict, Any
 from app.src.modules.legacy_rag.vector_loader import vector_store
+
+logger = logging.getLogger("EduSim.rag_service")
 
 class RagService:
     @staticmethod
@@ -9,7 +12,7 @@ class RagService:
         retriever = vector_store.get_retriever(subject)
         
         if not retriever:
-            print(f"No retriever found for subject {subject}, trying physics")
+            logger.info("No retriever found for subject '%s', falling back to physics", subject)
             retriever = vector_store.get_retriever("physics")
             
         if not retriever:

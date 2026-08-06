@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.sandbox.initialization.pipeline")
+
 """
 pipeline.py
 ===========
@@ -97,7 +100,7 @@ class ObjectsStage(PipelineStage):
                 c_model = SandboxConstraint.model_validate(raw_c)
                 hydrated_constraints.append(c_model)
             except Exception as e:
-                print(f"Skipping malformed constraint in ObjectsStage: {e}")
+                logger.info(f"Skipping malformed constraint in ObjectsStage: {e}")
         context.sandbox.constraints = hydrated_constraints
 
 
@@ -246,7 +249,7 @@ class RelationshipsStage(PipelineStage):
             try:
                 hydrated_rels.append(EducationalRelationship.model_validate(r))
             except Exception as e:
-                print(f"Skipping malformed explicit relationship: {e}")
+                logger.info(f"Skipping malformed explicit relationship: {e}")
         context.sandbox.relationships = hydrated_rels
 
         # Run dynamic RelationshipBuilder to compile/attach contextual relationships

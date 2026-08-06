@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.sandbox.state.runtime_store")
+
 """
 runtime_store.py
 ================
@@ -112,7 +115,7 @@ class RuntimeStore:
             try:
                 callback(self)
             except Exception as e:
-                print(f"Error invoking state subscriber callback: {e}")
+                logger.error(f"Error invoking state subscriber callback: {e}")
 
     # --- Unified Value Accessors ---
 

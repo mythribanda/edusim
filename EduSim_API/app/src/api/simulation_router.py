@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.api.simulation_router")
+
 from fastapi import APIRouter, Depends, Header
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -38,7 +41,7 @@ async def generate_synthesized_simulation(
         )
         try:
             db.commit()
-            print("[Database] Activity logs saved in the database: updated")
+            logger.info("[Database] Activity logs saved in the database: updated")
             if isinstance(response, dict):
                 response["message"] = "Simulation progress saved successfully."
         except Exception as e:

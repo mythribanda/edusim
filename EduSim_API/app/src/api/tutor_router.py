@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.api.tutor_router")
+
 from fastapi import APIRouter, Query, Depends, Header, BackgroundTasks
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -38,7 +41,7 @@ async def generate_learning_summary(explanation: str) -> str:
         )
         return summary.strip() if summary else "Summary unavailable."
     except Exception as e:
-        print(f"[Summary Generator Error] Failed to generate LLM summary: {e}")
+        logger.error(f"[Summary Generator Error] Failed to generate LLM summary: {e}")
         # Graceful fallback: return a truncated explanation structure
         return explanation[:250].strip() + "..."
 
@@ -106,11 +109,11 @@ async def analyze_query(
             "misconceptions": profile_obj.misconceptions
         }
     else:
-        print("[WARN] No user resolved from auth header — chat will NOT be saved to DB!")
-        print(f"  Authorization header present: {bool(authorization)}")
+        logger.warning("[WARN] No user resolved from auth header — chat will NOT be saved to DB!")
+        logger.info(f"  Authorization header present: {bool(authorization)}")
         if authorization and authorization.startswith("Bearer "):
             token_preview = authorization.split(" ", 1)[1][:20] + "..."
-            print(f"  Token preview: {token_preview}")
+            logger.info(f"  Token preview: {token_preview}")
             # Check specifically WHY token failed
             from app.src.utils.auth import decode_token as _decode
             raw_token = authorization.split(" ", 1)[1].strip()
@@ -122,15 +125,15 @@ async def analyze_query(
                     from datetime import datetime, timezone
                     exp_dt = datetime.fromtimestamp(exp, tz=timezone.utc)
                     now_dt = datetime.now(timezone.utc)
-                    print(f"  Token expired at: {exp_dt} (now: {now_dt}, delta: {now_dt - exp_dt})")
+                    logger.info(f"  Token expired at: {exp_dt} (now: {now_dt}, delta: {now_dt - exp_dt})")
             except Exception:
-                print("  Could not decode token for diagnostics")
+                logger.info("  Could not decode token for diagnostics")
         
     response = await analyze_tutor_controller(request, student_profile)
-    print("--- DEBUG AUTH ---")
-    print(f"Authorization Header: {'present' if authorization else 'MISSING'}")
-    print(f"Resolved User: {user.id if user else 'NONE (NOT SAVING)'}")
-    print("------------------")
+    logger.info("--- DEBUG AUTH ---")
+    logger.info(f"Authorization Header: {'present' if authorization else 'MISSING'}")
+    logger.info(f"Resolved User: {user.id if user else 'NONE (NOT SAVING)'}")
+    logger.info("------------------")
     data = response.get("data", {}) if isinstance(response, dict) else {}
     explanation = data.get("explanation") or data.get("ai_explanation") or ""
     
@@ -156,7 +159,7 @@ async def analyze_query(
             topic = topic[:97] + "..."
             
         if "Error:" in explanation:
-            print("[DB SAVE SKIPPED] Tutor generation failed")
+            logger.error("[DB SAVE SKIPPED] Tutor generation failed")
             return response
             
         # 2. Generate a concise educational summary
@@ -196,16 +199,16 @@ async def analyze_query(
                 }
             )
             
-            print("--- PERSISTENCE LOG ---")
-            print(f"user_id: {user.id}")
-            print(f"session_id: {session_id}")
-            print(f"topic: {topic}")
-            print(f"summary length: {len(summary) if summary else 0}")
+            logger.info("--- PERSISTENCE LOG ---")
+            logger.info(f"user_id: {user.id}")
+            logger.info(f"session_id: {session_id}")
+            logger.info(f"topic: {topic}")
+            logger.info(f"summary length: {len(summary) if summary else 0}")
             
-            print("Before db.add()")
+            logger.info("Before db.add()")
             db.add(user_record)
             db.add(assistant_record)
-            print("After db.add()")
+            logger.info("After db.add()")
             
             record_activity(
                 db,
@@ -218,17 +221,17 @@ async def analyze_query(
                 metadata={"topic": topic},
             )
 
-            print("Before db.commit()")
+            logger.info("Before db.commit()")
             db.commit()
-            print("After db.commit()")
+            logger.info("After db.commit()")
             
-            print("Before db.refresh()")
+            logger.info("Before db.refresh()")
             db.refresh(user_record)
             db.refresh(assistant_record)
-            print("After db.refresh()")
+            logger.info("After db.refresh()")
             
-            print(f"INSERTED RECORD ID: {user_record.id}")
-            print("-----------------------")
+            logger.info(f"INSERTED RECORD ID: {user_record.id}")
+            logger.info("-----------------------")
             
             if isinstance(response, dict):
                 response["success"] = True
@@ -248,18 +251,18 @@ async def analyze_query(
                 )
         except Exception as e:
             db.rollback()
-            print(f"Exception during save: {repr(e)}")
+            logger.error(f"Exception during save: {repr(e)}")
             from fastapi.responses import JSONResponse
             return JSONResponse(status_code=500, content={"success": False, "message": "Failed to save learning summary."})
     
-    print("Tutor request:", request.query)
+    logger.info("Tutor request:", request.query)
     if explanation:
         try:
-            print("LLM response:", explanation[:200])
+            logger.info("LLM response:", explanation[:200])
         except Exception:
-            print("LLM response contains non-ascii characters")
+            logger.info("LLM response contains non-ascii characters")
     try:
-        print("Tutor API response success:", response.get("success") if isinstance(response, dict) else True)
+        logger.info("Tutor API response success:", response.get("success") if isinstance(response, dict) else True)
     except Exception:
         pass
     
@@ -300,7 +303,7 @@ async def get_tutor_guide(
                 db.commit()
             except Exception as e:
                 db.rollback()
-                print(f"Exception during save guide activity: {repr(e)}")
+                logger.error(f"Exception during save guide activity: {repr(e)}")
                 
         return {
             "success": True,
@@ -362,7 +365,7 @@ async def search_curriculum(
         )
         try:
             db.commit()
-            print("[Database] User setting saved in the database: updated")
+            logger.info("[Database] User setting saved in the database: updated")
             return {"query": q, "results": results, "message": "Settings saved successfully."}
         except Exception as e:
             db.rollback()
@@ -393,7 +396,7 @@ async def autocomplete(
         )
         try:
             db.commit()
-            print("[Database] User setting saved in the database: updated")
+            logger.info("[Database] User setting saved in the database: updated")
             return {"query": q, "results": suggestions, "suggestions": suggestions, "message": "Settings saved successfully."}
         except Exception as e:
             db.rollback()
@@ -427,7 +430,7 @@ async def get_topic(
         )
         try:
             db.commit()
-            print("[Database] Activity logs saved in the database: updated")
+            logger.info("[Database] Activity logs saved in the database: updated")
             if isinstance(content, dict):
                 content["message"] = "Settings saved successfully."
         except Exception as e:

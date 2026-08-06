@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.legacy_rag.generator")
+
 import json
 import re
 from typing import Any, Dict, Optional
@@ -376,17 +379,17 @@ def _extract_openrouter_content(data: Dict[str, Any]) -> Optional[str]:
 
 def _log_model_attempt(model_name: str, fallback: bool = False):
     if fallback:
-        print(f"[LLM] Fallback model triggered: {model_name}")
+        logger.info(f"[LLM] Fallback model triggered: {model_name}")
     else:
-        print(f"[LLM] Using model: {model_name}")
+        logger.info(f"[LLM] Using model: {model_name}")
 
 
 def _log_model_failure(model_name: str, error: str):
-    print(f"[LLM] Model failed: {model_name} ({error})")
+    logger.error(f"[LLM] Model failed: {model_name} ({error})")
 
 
 def _log_model_success(model_name: str):
-    print(f"[LLM] Response generated successfully ({model_name})")
+    logger.info(f"[LLM] Response generated successfully ({model_name})")
 
 
 def clean_history_for_llm(history: list[dict[str, str]] | None) -> list[dict[str, str]]:
@@ -454,7 +457,7 @@ def _generate_openrouter_text(
                 p_tokens = usage.get("prompt_tokens", 0)
                 c_tokens = usage.get("completion_tokens", 0)
                 t_tokens = usage.get("total_tokens", 0)
-                print(f"[OpenRouter Token Usage] Model: {model_name} | Prompt: {p_tokens} | Completion: {c_tokens} | Total: {t_tokens}")
+                logger.info(f"[OpenRouter Token Usage] Model: {model_name} | Prompt: {p_tokens} | Completion: {c_tokens} | Total: {t_tokens}")
             return _extract_openrouter_content(data)
 
     except Exception as e:
@@ -505,7 +508,7 @@ async def _generate_openrouter_text_async(
                 p_tokens = usage.get("prompt_tokens", 0)
                 c_tokens = usage.get("completion_tokens", 0)
                 t_tokens = usage.get("total_tokens", 0)
-                print(f"[OpenRouter Token Usage] Model: {model_name} | Prompt: {p_tokens} | Completion: {c_tokens} | Total: {t_tokens}")
+                logger.info(f"[OpenRouter Token Usage] Model: {model_name} | Prompt: {p_tokens} | Completion: {c_tokens} | Total: {t_tokens}")
             return _extract_openrouter_content(data)
 
     except Exception as e:
@@ -647,12 +650,12 @@ def generate_openrouter_text(
                     return result
                 else:
                     best_fallback = result
-                    print(f"[LLM] Response incomplete on attempt {attempt + 1}. Retrying with more tokens...")
+                    logger.info(f"[LLM] Response incomplete on attempt {attempt + 1}. Retrying with more tokens...")
                     current_max = min(current_max + 800, 4096)
                     current_temp = 0.15
 
     if best_fallback:
-        print("[LLM] Returning best fallback incomplete response.")
+        logger.info("[LLM] Returning best fallback incomplete response.")
         return best_fallback
 
     return "Error: Unable to generate response from OpenRouter."
@@ -709,12 +712,12 @@ async def generate_openrouter_text_async(
                     return result
                 else:
                     best_fallback = result
-                    print(f"[LLM] Response incomplete on attempt {attempt + 1}. Retrying with more tokens...")
+                    logger.info(f"[LLM] Response incomplete on attempt {attempt + 1}. Retrying with more tokens...")
                     current_max = min(current_max + 800, 4096)
                     current_temp = 0.15
 
     if best_fallback:
-        print("[LLM] Returning best fallback incomplete response.")
+        logger.info("[LLM] Returning best fallback incomplete response.")
         return best_fallback
 
     return "Error: Unable to generate response from OpenRouter."
@@ -773,7 +776,7 @@ async def generate_llm_stream_async(
                                     p_tokens = usage.get("prompt_tokens", 0)
                                     c_tokens = usage.get("completion_tokens", 0)
                                     t_tokens = usage.get("total_tokens", 0)
-                                    print(f"[OpenRouter Token Usage] Stream ended. Model: {model_name} | Prompt: {p_tokens} | Completion: {c_tokens} | Total: {t_tokens}")
+                                    logger.info(f"[OpenRouter Token Usage] Stream ended. Model: {model_name} | Prompt: {p_tokens} | Completion: {c_tokens} | Total: {t_tokens}")
                                 if "choices" in data and len(data["choices"]) > 0:
                                     delta = data["choices"][0].get("delta", {}).get("content", "")
                                     if delta:

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import logging
+logger = logging.getLogger("EduSim.api.persistence_router")
+
 import uuid
 from datetime import datetime
 from typing import Any, Optional
@@ -284,7 +287,7 @@ def delete_tutor_session_endpoint(
     try:
         deleted = db.query(ChatHistory).filter(ChatHistory.session_id == sid, ChatHistory.user_id == user.id).delete()
         db.commit()
-        print("[Database] Chat history saved in the database: updated")
+        logger.info("[Database] Chat history saved in the database: updated")
         return {"success": True, "message": "History deleted successfully.", "deleted_count": deleted}
     except Exception as e:
         db.rollback()
@@ -347,7 +350,7 @@ def add_activity(
     )
     try:
         db.commit()
-        print("[Database] Activity logs saved in the database: updated")
+        logger.info("[Database] Activity logs saved in the database: updated")
         return {"success": True, "message": "Settings saved successfully.", "event": event["id"]}
     except Exception as e:
         db.rollback()
@@ -374,7 +377,7 @@ def save_user_state_endpoint(
     )
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Settings saved successfully.", "state": record}
     except Exception as e:
         db.rollback()
@@ -399,7 +402,7 @@ def save_session_state(
     )
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Settings saved successfully.", "state": record["id"]}
     except Exception as e:
         db.rollback()
@@ -417,7 +420,7 @@ def save_profile(
     record = upsert_user_profile(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Profile updated successfully.", "profile": record}
     except Exception as e:
         db.rollback()
@@ -435,7 +438,7 @@ def save_setting(
     record = upsert_user_setting(db, user=user, key=request.key, value=request.value)
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         db.refresh(record)
         return {"success": True, "message": "Settings saved successfully.", "setting": record.id}
     except Exception as e:
@@ -454,7 +457,7 @@ def save_curriculum(
     record = save_curriculum_progress(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Settings saved successfully.", "progress": record["id"]}
     except Exception as e:
         db.rollback()
@@ -472,7 +475,7 @@ def save_curriculum_visit(
     record = record_curriculum_visit(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Settings saved successfully.", "visit": record["id"]}
     except Exception as e:
         db.rollback()
@@ -490,7 +493,7 @@ def save_tutor_session(
     record = save_tutor_conversation(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] Chat history saved in the database: updated")
+        logger.info("[Database] Chat history saved in the database: updated")
         return {"success": True, "message": "Learning summary saved successfully.", "session": str(record.id)}
     except Exception as e:
         db.rollback()
@@ -517,7 +520,7 @@ def save_auth_session(
     )
     try:
         db.commit()
-        print("[Database] User session saved in the database: updated")
+        logger.info("[Database] User session saved in the database: updated")
         db.refresh(record)
         return {"success": True, "message": "Settings saved successfully.", "session": record.id}
     except Exception as e:
@@ -545,7 +548,7 @@ def save_refresh_token(
     )
     try:
         db.commit()
-        print("[Database] User session saved in the database: updated")
+        logger.info("[Database] User session saved in the database: updated")
         db.refresh(record)
         return {"success": True, "message": "Settings saved successfully.", "refresh_token": record.id}
     except Exception as e:
@@ -564,7 +567,7 @@ def save_formula_lab_session(
     record = save_formula_session(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Formula history saved successfully.", "session": str(record.id)}
     except Exception as e:
         db.rollback()
@@ -582,7 +585,7 @@ def save_formula_lab_action(
     record = record_formula_action(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Formula history saved successfully.", "action": record["id"]}
     except Exception as e:
         db.rollback()
@@ -600,7 +603,7 @@ def save_formula_lab_attempt(
     record = save_formula_attempt(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Formula history saved successfully.", "attempt": record["id"]}
     except Exception as e:
         db.rollback()
@@ -618,7 +621,7 @@ def save_formula_lab_calculation(
     record = record_formula_calculation(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] Formula history saved in the database: updated")
+        logger.info("[Database] Formula history saved in the database: updated")
         db.refresh(record)
         return {"success": True, "message": "Formula history saved successfully.", "calculation": record.id}
     except Exception as e:
@@ -650,7 +653,7 @@ def save_sandbox(
     record = save_sandbox_state(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] Simulation history saved in the database: updated")
+        logger.info("[Database] Simulation history saved in the database: updated")
         db.refresh(record)
         return {"success": True, "message": "Simulation progress saved successfully.", "simulation": record.id, "simulation_id": record.simulation_id}
     except Exception as e:
@@ -682,7 +685,7 @@ def save_sandbox_event(
     record = record_sandbox_event(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Simulation progress saved successfully.", "event": record["id"]}
     except Exception as e:
         db.rollback()
@@ -723,7 +726,7 @@ def save_search_history(
     record = record_search_history(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Settings saved successfully.", "history": record["id"]}
     except Exception as e:
         db.rollback()
@@ -747,7 +750,7 @@ def save_search_result_selection(
     )
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Settings saved successfully.", "selection": record["id"]}
     except Exception as e:
         db.rollback()
@@ -765,7 +768,7 @@ def save_dashboard(
     record = save_dashboard_state(db, user=user, payload=request.model_dump())
     try:
         db.commit()
-        print("[Database] User setting saved in the database: updated")
+        logger.info("[Database] User setting saved in the database: updated")
         return {"success": True, "message": "Settings saved successfully.", "dashboard": record}
     except Exception as e:
         db.rollback()
@@ -810,7 +813,7 @@ def delete_sandbox_state(
     try:
         record.deleted_at = datetime.now()
         db.commit()
-        print("[Database] Simulation history saved in the database: updated")
+        logger.info("[Database] Simulation history saved in the database: updated")
         return {"success": True, "message": "History deleted successfully."}
     except Exception as e:
         db.rollback()
@@ -882,7 +885,7 @@ def delete_chat_history(
     try:
         deleted = db.query(ChatHistory).filter(ChatHistory.session_id == sid, ChatHistory.user_id == user.id).delete()
         db.commit()
-        print("[Database] Chat history saved in the database: updated")
+        logger.info("[Database] Chat history saved in the database: updated")
         return {"success": True, "message": "History deleted successfully.", "deleted_count": deleted}
     except Exception as e:
         db.rollback()
@@ -905,7 +908,7 @@ def delete_formula_calculation(
     try:
         deleted = db.query(FormulaHistory).filter(FormulaHistory.id == cid, FormulaHistory.user_id == user.id).delete()
         db.commit()
-        print("[Database] Formula history saved in the database: updated")
+        logger.info("[Database] Formula history saved in the database: updated")
         return {"success": True, "message": "History deleted successfully.", "deleted_count": deleted}
     except Exception as e:
         db.rollback()
@@ -926,7 +929,7 @@ def delete_simulation_history(
     try:
         record.deleted_at = datetime.now()
         db.commit()
-        print("[Database] Simulation history saved in the database: updated")
+        logger.info("[Database] Simulation history saved in the database: updated")
         return {"success": True, "message": "History deleted successfully."}
     except Exception as e:
         db.rollback()

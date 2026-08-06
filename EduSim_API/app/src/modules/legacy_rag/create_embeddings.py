@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.legacy_rag.create_embeddings")
+
 import os
 import sys
 from pathlib import Path
@@ -17,33 +20,33 @@ DATA_DIR = ROOT_DIR / "data"
 VECTORSTORE_DIR = ROOT_DIR / "vectorstore"
 
 def create_embeddings_for_subject(pdf_path: Path, subject: str, embeddings_model):
-    print(f"\n=========================================")
-    print(f"Processing Subject: {subject.upper()}")
-    print(f"=========================================")
+    logger.info(f"\n=========================================")
+    logger.info(f"Processing Subject: {subject.upper()}")
+    logger.info(f"=========================================")
     
     subject_dir = VECTORSTORE_DIR / subject
     
     # 1. Load PDF
-    print(f"[1/4] Loading PDF: {pdf_path.name}")
+    logger.info(f"[1/4] Loading PDF: {pdf_path.name}")
     try:
         docs = load_pdf(str(pdf_path))
     except Exception as e:
-        print(f"Error loading {pdf_path}: {e}")
+        logger.error(f"Error loading {pdf_path}: {e}")
         return
         
     if not docs:
-        print(f"No documents loaded for {subject}.")
+        logger.info(f"No documents loaded for {subject}.")
         return
 
     # 2. Split Docs
-    print(f"[2/4] Splitting documents into chunks...")
+    logger.info(f"[2/4] Splitting documents into chunks...")
     chunks = split_docs(docs)
-    print(f"      Total chunks: {len(chunks)}")
+    logger.info(f"      Total chunks: {len(chunks)}")
     
     texts = [chunk.page_content for chunk in chunks]
 
     # 3. Create Embeddings
-    print(f"[3/4] Generating embeddings...")
+    logger.info(f"[3/4] Generating embeddings...")
     embeddings = embeddings_model.encode(
         texts,
         convert_to_numpy=True,
@@ -53,7 +56,7 @@ def create_embeddings_for_subject(pdf_path: Path, subject: str, embeddings_model
     faiss.normalize_L2(embeddings)
     
     # 4. Create FAISS Index & Metadata
-    print(f"[4/4] Creating and saving FAISS index...")
+    logger.info(f"[4/4] Creating and saving FAISS index...")
     dimension = embeddings.shape[1]
     index = faiss.IndexFlatIP(dimension)
     index.add(embeddings)
@@ -76,12 +79,12 @@ def create_embeddings_for_subject(pdf_path: Path, subject: str, embeddings_model
     with open(subject_dir / "index.pkl", "wb") as f:
         pickle.dump(metadata, f)
         
-    print(f"✓ Saved index for {subject} at {subject_dir}")
+    logger.info(f"✓ Saved index for {subject} at {subject_dir}")
 
 def main():
-    print("Initializing Embeddings Generator...")
+    logger.info("Initializing Embeddings Generator...")
     if not DATA_DIR.exists():
-        print(f"Data directory {DATA_DIR} not found.")
+        logger.info(f"Data directory {DATA_DIR} not found.")
         return
         
     VECTORSTORE_DIR.mkdir(exist_ok=True)
@@ -102,7 +105,7 @@ def main():
             pdf_path = DATA_DIR / file
             create_embeddings_for_subject(pdf_path, base_subject, embeddings_model)
             
-    print("\n✅ All embeddings created successfully.")
+    logger.info("\n✅ All embeddings created successfully.")
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.sandbox.events.event_bus")
+
 """
 event_bus.py
 ============
@@ -107,7 +110,7 @@ class EventBus:
                         if not listener.filter_fn(context):
                             continue
                     except Exception as e:
-                        print(f"Error evaluating filter function for listener {listener.sub_id}: {e}")
+                        logger.error(f"Error evaluating filter function for listener {listener.sub_id}: {e}")
                         continue
                 matched_listeners.append(listener)
 
@@ -124,7 +127,7 @@ class EventBus:
                 listener.callback(context)
             except Exception as e:
                 # Shield physics engine from failing listeners
-                print(f"Defensive catch: subscriber callback crashed for '{context.event_type}': {e}")
+                logger.info(f"Defensive catch: subscriber callback crashed for '{context.event_type}': {e}")
 
     # --- Batch Queue Systems ---
 

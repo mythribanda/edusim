@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.sandbox.state.observable_state")
+
 """
 observable_state.py
 ===================
@@ -106,7 +109,7 @@ class ObservableStateManager:
                 # Custom or fallback
                 result = 0.0
         except Exception as e:
-            print(f"Error evaluating observable '{observable_id}': {e}")
+            logger.error(f"Error evaluating observable '{observable_id}': {e}")
             result = 0.0
 
         # Update cache block

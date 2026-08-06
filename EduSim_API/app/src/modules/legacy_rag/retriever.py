@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.legacy_rag.retriever")
+
 import numpy as np
 import faiss
 
@@ -58,12 +61,12 @@ def get_retriever(index, metadata, embeddings_model, k=5):
                     # =================================================
                     # DEBUG OUTPUT
                     # =================================================
-                    print("\n===== RETRIEVED =====")
-                    print(f"Source  : {res.get('source')}")
-                    print(f"Subject : {res.get('subject', 'unknown')}")
-                    print(f"Page    : {res.get('page')}")
-                    print(f"Score   : {score:.4f}")
-                    print("-" * 40)
+                    logger.info("\n===== RETRIEVED =====")
+                    logger.info(f"Source  : {res.get('source')}")
+                    logger.info(f"Subject : {res.get('subject', 'unknown')}")
+                    logger.info(f"Page    : {res.get('page')}")
+                    logger.info(f"Score   : {score:.4f}")
+                    logger.info("-" * 40)
 
                     results.append(res)
 
@@ -71,13 +74,13 @@ def get_retriever(index, metadata, embeddings_model, k=5):
             # NO RESULTS
             # =====================================================
             if not results:
-                print("\n[WARNING] No strong matches found.")
+                logger.warning("\n[WARNING] No strong matches found.")
 
             return results
 
         except Exception as e:
 
-            print(f"\n[ERROR] Error retrieving documents: {e}")
+            logger.error(f"\n[ERROR] Error retrieving documents: {e}")
 
             return []
 

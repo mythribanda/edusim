@@ -1,3 +1,5 @@
+logger = logging.getLogger("EduSim.modules.sandbox.state.state_manager")
+
 """
 state_manager.py
 ================
@@ -20,10 +22,13 @@ dispatched by Matter.js.
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Callable, Optional
 from app.src.modules.sandbox.state.runtime_store import RuntimeStore
 from app.src.modules.sandbox.state.object_state import ObjectRuntimeState
 from app.src.modules.sandbox.state.mutations import apply_force
+
+logger = logging.getLogger("EduSim.sandbox.state_manager")
 
 
 class StateManager:
@@ -54,7 +59,7 @@ class StateManager:
             try:
                 callback(event_key, data)
             except Exception as e:
-                print(f"Error in tutor trigger callback: {e}")
+                logger.error(f"Error in tutor trigger callback: {e}")
 
     # ===========================================================================
     # Core Orchestration Tick Cycles
@@ -136,7 +141,7 @@ class StateManager:
                 try:
                     callback(id_a, id_b)
                 except Exception as e:
-                    print(f"Error in collision callback: {e}")
+                    logger.error("Error in collision callback: %s", e)
 
         # 4. Invalidate and evaluate educational observables (reactive recomputation)
         self.store.observables.invalidate_cache()

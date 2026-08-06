@@ -1,9 +1,12 @@
 import json
+import logging
 import re
 from typing import List, Optional
 from app.src.services.rag_service import RagService
 from app.src.modules.legacy_rag.generator import generate_llm_text_async
 from app.src.models.question_models import QuestionGenerationResponse, QuestionModel
+
+logger = logging.getLogger("EduSim.question_service")
 
 class QuestionService:
     @staticmethod
@@ -86,7 +89,7 @@ Respond STRICTLY in this JSON format, no markdown blocks:
                 if questions:
                     return QuestionGenerationResponse(questions=questions[:5])
         except Exception as e:
-            print(f"Error generating questions via LLM: {e}")
+            logger.error("Error generating questions via LLM: %s", e)
             
         # Return empty list if generation fails. No generic fallbacks allowed.
         return QuestionGenerationResponse(questions=[])

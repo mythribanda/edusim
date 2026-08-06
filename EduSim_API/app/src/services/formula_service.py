@@ -1,5 +1,6 @@
 import re
 import json
+import logging
 import sympy
 import string
 import difflib
@@ -9,6 +10,8 @@ from typing import List, Dict, Any
 from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication
 from app.src.modules.legacy_rag.generator import generate_llm_text_async
 from app.src.models.formula_models import FormulaLabResponse, FormulaVariable, FormulaControl, FormulaExample
+
+logger = logging.getLogger("EduSim.formula_service")
 
 FORMULA_GROUP_CACHE = {}
 
@@ -30,7 +33,7 @@ def save_persistent_cache(cache: Dict[str, Any]):
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(cache, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"[Cache] Error saving persistent cache: {e}")
+        logger.error("[Cache] Error saving persistent cache: %s", e)
 
 def get_cache_key(text: str, query: str = None) -> str:
     key_str = f"q:{query or ''}|t:{text or ''}"
@@ -283,7 +286,7 @@ class FormulaService:
         cache_key = get_cache_key(text, query)
         cache = load_persistent_cache()
         if cache_key in cache:
-            print(f"[FormulaService] Serving extract_formulas from persistent cache for query: {query}")
+            logger.info("[FormulaService] Serving extract_formulas from persistent cache for query: %s", query)
             cached_res = cache[cache_key]
             for f in cached_res.get("formulas", []):
                 primary = f.get("primary_formula") or f.get("formula")
@@ -334,7 +337,7 @@ Return raw JSON only, no markdown formatting."""
                     candidates.add(formula_str)
                     titles_map[formula_str] = title
         except Exception as e:
-            print(f"[FormulaService] Error during LLM extraction: {e}")
+            logger.error("[FormulaService] Error during LLM extraction: %s", e)
             # Fallback to regex candidate extraction if LLM fails
             display_regex = r"\$\$(.*?)\$\$"
             inline_regex = r"\$([^$\n]+?)\$"
@@ -485,7 +488,7 @@ Return raw JSON only, no markdown formatting."""
                 # Completely discard/remove substituted formulas to save tokens and clean up views
                 pass
                     
-        print(f"[FormulaService] Extraction Complete. Stats: {json.dumps(stats)}")
+        logger.info("[FormulaService] Extraction complete. Stats: %s", json.dumps(stats))
             
         result = {"formulas": formulas, "calculation_steps": calculation_steps}
         try:
@@ -493,7 +496,7 @@ Return raw JSON only, no markdown formatting."""
             cache[cache_key] = result
             save_persistent_cache(cache)
         except Exception as e:
-            print(f"[Cache] Failed to save result to cache: {e}")
+            logger.error("[Cache] Failed to save result to cache: %s", e)
             
         return result
 
@@ -514,7 +517,7 @@ Return raw JSON only, no markdown formatting."""
         cache_key_details = f"detail:{formula}"
         cache = load_persistent_cache()
         if cache_key_details in cache:
-            print(f"[FormulaService] Serving get_formula_details from persistent cache for formula: {formula}")
+            logger.info("[FormulaService] Serving get_formula_details from persistent cache for formula: %s", formula)
             cached_res = cache[cache_key_details]
             controls = [FormulaControl(**c) for c in cached_res.get("controls", [])]
             anatomy = [FormulaVariable(**a) for a in cached_res.get("anatomy", [])]
@@ -589,7 +592,7 @@ Return raw JSON only, no markdown formatting."""
                     }
                     save_persistent_cache(cache)
                 except Exception as e:
-                    print(f"[Cache] Failed to save registry details to cache: {e}")
+                    logger.error("[Cache] Failed to save registry details to cache: %s", e)
                 return res_obj
                 
         # LLM Fallback for unknown formula
@@ -659,7 +662,7 @@ Do NOT include markdown block markers, output raw JSON.'''
                     derived_expressions=derived_expressions
                 )
         except Exception as e:
-            print(f"LLM formula extraction failed: {e}")
+            logger.error("LLM formula extraction failed: %s", e)
             
         if not res_obj:
             # Absolute fallback
@@ -697,6 +700,6 @@ Do NOT include markdown block markers, output raw JSON.'''
             }
             save_persistent_cache(cache)
         except Exception as e:
-            print(f"[Cache] Failed to save details result to cache: {e}")
+            logger.error("[Cache] Failed to save details result to cache: %s", e)
             
         return res_obj

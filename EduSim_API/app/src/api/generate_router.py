@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.api.generate_router")
+
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -66,7 +69,7 @@ async def generate_simulation(
             )
             try:
                 db.commit()
-                print("[Database] Activity logs saved in the database: updated")
+                logger.info("[Database] Activity logs saved in the database: updated")
                 if isinstance(valid_dsl, dict):
                     valid_dsl["message"] = "Simulation progress saved successfully."
             except Exception as e:

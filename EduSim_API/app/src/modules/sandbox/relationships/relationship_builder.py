@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.sandbox.relationships.relationship_builder")
+
 """
 relationship_builder.py
 =======================
@@ -459,7 +462,7 @@ class RelationshipBuilder:
                         existing_ids.add(rel.id)
             except Exception as e:
                 # Robust error isolation: one failing detector shouldn't crash the entire compilation
-                print(f"Error compiling relationships with {detector.__class__.__name__}: {e}")
+                logger.error(f"Error compiling relationships with {detector.__class__.__name__}: {e}")
 
         # Post-processing/Validation of object ID references to ensure integrity
         valid_object_ids = {obj.id for obj in sandbox.objects}

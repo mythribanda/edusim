@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.legacy_rag.vector_loader")
+
 import os
 import faiss
 import pickle
@@ -32,14 +35,14 @@ class VectorStoreManager:
         if self._is_loaded:
             return
             
-        print("\n=========================================")
-        print("Preloading FAISS Vector Databases")
-        print("=========================================")
+        logger.info("\n=========================================")
+        logger.info("Preloading FAISS Vector Databases")
+        logger.info("=========================================")
         
         self._embeddings_model = get_embeddings()
         
         if not VECTORSTORE_DIR.exists():
-            print(f"[WARNING] Vectorstore directory {VECTORSTORE_DIR} not found. Please run create_embeddings.py")
+            logger.warning(f"[WARNING] Vectorstore directory {VECTORSTORE_DIR} not found. Please run create_embeddings.py")
             return
             
         # Load each subject
@@ -52,7 +55,7 @@ class VectorStoreManager:
                 
                 if index_path.exists() and meta_path.exists():
                     try:
-                        print(f"Loading '{subject}' index...")
+                        logger.info(f"Loading '{subject}' index...")
                         index = faiss.read_index(str(index_path))
                         with open(meta_path, "rb") as f:
                             metadata = pickle.load(f)
@@ -66,10 +69,10 @@ class VectorStoreManager:
                         )
                         loaded_subjects.append(subject)
                     except Exception as e:
-                        print(f"[ERROR] Failed to load index for {subject}: {e}")
+                        logger.error(f"[ERROR] Failed to load index for {subject}: {e}")
                         
         self._is_loaded = True
-        print(f"[SUCCESS] Successfully preloaded subjects: {', '.join(loaded_subjects) if loaded_subjects else 'None'}")
+        logger.info(f"[SUCCESS] Successfully preloaded subjects: {', '.join(loaded_subjects) if loaded_subjects else 'None'}")
 
     def get_retriever(self, subject: str = None):
         """

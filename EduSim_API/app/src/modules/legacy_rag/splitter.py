@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.modules.legacy_rag.splitter")
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
@@ -31,6 +34,6 @@ def split_docs(docs):
 
     chunks = splitter.split_documents(docs)
 
-    print(f"✓ Total chunks created: {len(chunks)}")
+    logger.info(f"✓ Total chunks created: {len(chunks)}")
 
     return chunks

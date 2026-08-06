@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.config.database")
+
 import os
 from pathlib import Path
 
@@ -14,7 +17,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     db_file = Path(__file__).resolve().parents[3] / "edusim.db"
     DATABASE_URL = f"sqlite:///{db_file}"
-    print(f"[Database] DATABASE_URL is not set. Falling back to local SQLite database: {db_file}")
+    logger.info(f"[Database] DATABASE_URL is not set. Falling back to local SQLite database: {db_file}")
 
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(

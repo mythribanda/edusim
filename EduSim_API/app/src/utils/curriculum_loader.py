@@ -1,7 +1,10 @@
 import json
+import logging
 from pathlib import Path
 from sqlalchemy.orm import Session
 from app.src.models.persistence import Subject, Chapter, Topic
+
+logger = logging.getLogger("EduSim.curriculum_loader")
 
 
 def populate_curriculum(db: Session) -> None:
@@ -11,13 +14,13 @@ def populate_curriculum(db: Session) -> None:
 
     curriculum_path = Path(__file__).resolve().parents[1] / "data" / "curriculum.json"
     if not curriculum_path.exists():
-        print(f"[Curriculum Loader] File not found at {curriculum_path}")
+        logger.warning("[Curriculum Loader] File not found at %s", curriculum_path)
         return
 
     with open(curriculum_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    print("[Curriculum Loader] Populating database from curriculum.json...")
+    logger.info("[Curriculum Loader] Populating database from curriculum.json...")
     for class_item in data.get("classes", []):
         class_name = class_item.get("name")
         for sub_item in class_item.get("subjects", []):
@@ -70,4 +73,4 @@ def populate_curriculum(db: Session) -> None:
                     )
                     db.add(topic)
     db.commit()
-    print("[Curriculum Loader] Database curriculum population complete.")
+    logger.info("[Curriculum Loader] Database curriculum population complete.")

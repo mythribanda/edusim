@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("EduSim.api.formula")
+
 from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel
 from typing import List, Optional
@@ -34,7 +37,7 @@ async def get_formula_lab(
         try:
             save_formula_explanation_to_chat_history(db, user, req.formula, res)
             db.commit()
-            print("[Database] Chat history saved in the database: updated")
+            logger.info("[Database] Chat history saved in the database: updated")
             if hasattr(res, "message"):
                 res.message = "Formula history saved successfully."
             elif isinstance(res, dict):
