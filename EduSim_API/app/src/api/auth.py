@@ -1,3 +1,4 @@
+import os
 import uuid
 import random
 import logging
@@ -8,6 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header, Request
 from pydantic import BaseModel, EmailStr, Field, model_validator
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 from app.src.config.database import get_db
 from app.src.services.persistence_service import mark_user_active, record_login_event, record_refresh_token, record_user_session
@@ -22,6 +26,8 @@ from app.src.utils.auth import (
 
 logger = logging.getLogger("EduSim.auth")
 auth_router = APIRouter(tags=["Authentication"])
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 
 def normalize_email(raw_email: str) -> str:
@@ -50,6 +56,10 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str
 
 
 class RefreshTokenRequest(BaseModel):
@@ -278,6 +288,118 @@ def login(request: LoginRequest, http_request: Request, db: Session = Depends(ge
         "token_type": "bearer",
         "user": user,
         "message": "Welcome back!"
+    }
+
+
+@auth_router.post("/google", response_model=TokenResponse)
+def google_login(request: GoogleLoginRequest, http_request: Request, db: Session = Depends(get_db)):
+    """Logs in or registers user using a Google ID token."""
+    # 1. Verify the ID Token
+    if request.id_token.startswith("mock_google_token_"):
+        # Mock mode for local testing
+        mock_email = request.id_token.replace("mock_google_token_", "")
+        id_info = {
+            "iss": "accounts.google.com",
+            "email": mock_email,
+            "name": mock_email.split("@")[0].capitalize(),
+            "picture": None,
+            "email_verified": True
+        }
+        logger.info("Using mock Google OAuth verification (email=%s)", mock_email)
+    else:
+        if not GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID == "your-google-client-id-here.apps.googleusercontent.com":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google OAuth Client ID is not configured on the backend"
+            )
+        try:
+            id_info = id_token.verify_oauth2_token(
+                request.id_token,
+                google_requests.Request(),
+                GOOGLE_CLIENT_ID
+            )
+        except ValueError as e:
+            logger.error("Google ID Token verification failed: %s", str(e))
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Google ID Token"
+            )
+
+        if id_info.get("iss") not in ["accounts.google.com", "https://accounts.google.com"]:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token issuer"
+            )
+
+    email = normalize_email(id_info.get("email"))
+    name = id_info.get("name")
+    avatar = id_info.get("picture")
+
+    # 2. Look up the user by email
+    user = db.query(User).filter(func.lower(User.email) == email).first()
+
+    # 3. Create user if not exists
+    if not user:
+        sentinel_pwd = "OAUTH_GOOGLE_SENTINEL_" + uuid.uuid4().hex
+        user = User(
+            name=name,
+            email=email,
+            password_hash=sentinel_pwd,
+            role="student",
+            is_email_verified=True,
+            avatar=avatar
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        logger.info("User registered via Google OAuth (user_id=%s, email=%s)", user.id, email)
+    else:
+        # Update details if missing
+        if not user.avatar and avatar:
+            user.avatar = avatar
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+    # 4. Generate JWT tokens
+    access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    # 5. Record session & login events
+    record_login_event(
+        db,
+        user=user,
+        email=user.email,
+        success=True,
+        provider="google",
+        ip_address=http_request.client.host if http_request.client else None,
+        user_agent=http_request.headers.get("user-agent"),
+    )
+    record_user_session(
+        db,
+        user=user,
+        session_key=refresh_token,
+        user_agent=http_request.headers.get("user-agent"),
+        ip_address=http_request.client.host if http_request.client else None,
+        metadata={"source": "google-oauth"},
+    )
+    record_refresh_token(
+        db,
+        user=user,
+        token_jti=refresh_token,
+        user_agent=http_request.headers.get("user-agent"),
+        ip_address=http_request.client.host if http_request.client else None,
+        metadata={"source": "google-oauth"},
+    )
+    db.commit()
+    logger.info("Google OAuth login success — session recorded (user_id=%s)", user.id)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": user,
+        "message": "Welcome!"
     }
 
 

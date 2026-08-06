@@ -8,8 +8,8 @@ velocities, accelerations, forces, collisions) into frontend-safe,
 serializable JSON contracts matching generic Matter.js/PixiJS coordinate expectations.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from app.src.modules.sandbox.state.object_state import ObjectRuntimeState
 

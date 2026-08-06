@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 logger = logging.getLogger("EduSim.modules.sandbox.state.runtime_store")
 
@@ -15,7 +16,6 @@ tutor engines, timeline scrubbers, or websocket controllers can monitor and reac
 to state mutations.
 """
 
-from __future__ import annotations
 
 import uuid
 from typing import Any, Dict, List, Callable, Optional

@@ -9,8 +9,8 @@ Socratic tutorial constraints, and implements throttling for high-frequency
 mouse drag coordinates.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, Optional
 from app.src.modules.sandbox.events.event_types import InteractionEvents
 from app.src.modules.sandbox.events.event_context import EventContext

@@ -10,8 +10,8 @@ Using selectors prevents structural coupling (deep dot-path lookups) in tutor
 dialogues or rendering pipelines, and supports future optimization caches.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, Any
 from app.src.modules.sandbox.state.runtime_store import RuntimeStore
 from app.src.modules.sandbox.state.object_state import ObjectRuntimeState, StateVector2D

@@ -8,8 +8,8 @@ cached variables, clock speeds) into clean importable/exportable JSON contracts
 supporting timeline history scrubbers and cloud save files.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, List
 from app.src.modules.sandbox.state.snapshots import SimulationSnapshot
 

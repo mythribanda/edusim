@@ -10,8 +10,8 @@ It handles scalar/vector gravity healing, default presets for atmospheres
 (vacuum, earth, custom, etc.), and wind/fluid field parameter completions.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict
 
 from app.src.modules.sandbox.schemas.environment_schema import (

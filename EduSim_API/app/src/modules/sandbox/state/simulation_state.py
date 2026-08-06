@@ -10,8 +10,8 @@ It provides simple, standardized mutators for pacing, frame stepping,
 and speed throttling (e.g. slow motion).
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Dict, Any
 from pydantic import BaseModel, Field
 

@@ -37,8 +37,8 @@ ANTI-PATTERNS AVOIDED
 - No runtime logic (velocity integration, force accumulation) in this file.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from enum import Enum
 from typing import Any, Dict, List, Optional
 

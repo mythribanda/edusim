@@ -1,19 +1,12 @@
-import logging
-logger = logging.getLogger("EduSim.modules.sandbox.initialization.pipeline")
-
-"""
-pipeline.py
-===========
-Modular initialization pipeline architecture for EduSim.
-
-This pipeline defines a pluggable, staged compiler pattern where raw JSON-like 
-AI specifications are processed stage-by-stage to yield a pristine SandboxSchema. 
-
-Stages are decoupled and can be dynamically inserted, skipped, or customized 
-to support future extensions (like chemical reactions or electricity circuits).
-"""
 
 from __future__ import annotations
+import logging
+import asyncio
+from enum import Enum
+from typing import Any
+
+# other imports...
+logger = logging.getLogger("EduSim.modules.sandbox.initialization.pipeline")
 
 from typing import Any, Dict, List, Optional
 from copy import deepcopy

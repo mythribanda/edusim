@@ -8,8 +8,8 @@ with static pedagogical configurations (formulas, overlays, concept tags)
 into frontend-ready observable payloads.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, List
 from app.src.modules.sandbox.schemas.observable_schema import SandboxObservable
 from app.src.modules.sandbox.state.observable_state import ObservableRuntimeValue

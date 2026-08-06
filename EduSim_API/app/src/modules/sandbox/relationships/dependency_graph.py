@@ -36,8 +36,8 @@ BEST PRACTICES
 - Keep graph lookups highly performant through standard native adjacency maps.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Dict, List, Set, Optional, Tuple
 from app.src.modules.sandbox.schemas.sandbox_schema import SandboxSchema
 from app.src.modules.sandbox.schemas.relationship_schema import EducationalRelationship

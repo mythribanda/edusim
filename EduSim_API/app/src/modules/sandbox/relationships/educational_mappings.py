@@ -20,8 +20,8 @@ ARCHITECTURE & SCALABILITY
    or "Quantum Mechanics" by registering a new entry without refactoring any core pipelines.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 from app.src.modules.sandbox.schemas.relationship_schema import CurriculumLevel

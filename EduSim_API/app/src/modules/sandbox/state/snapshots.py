@@ -10,8 +10,8 @@ These snapshots are completely serializable, enabling:
 - Multi-checkpoint Undo/Redo operations
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from copy import deepcopy
 from pydantic import BaseModel, Field

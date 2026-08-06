@@ -11,8 +11,8 @@ It performs data healing for gravity vectors, position coordinates, units string
 "5kg" -> 5), and various nested dictionary objects.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional, Union
 

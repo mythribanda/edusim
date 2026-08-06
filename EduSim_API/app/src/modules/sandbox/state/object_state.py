@@ -11,8 +11,8 @@ It computes derived attributes (such as linear momentum or kinetic energy) direc
 on demand to support educational formulas.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 

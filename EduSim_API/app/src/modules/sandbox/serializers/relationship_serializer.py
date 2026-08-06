@@ -8,8 +8,8 @@ misconceptions, and variable binding maps into generic frontend-safe contracts
 for displaying educational panels, equations, and tutorial sidebars.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, List
 from app.src.modules.sandbox.schemas.relationship_schema import EducationalRelationship
 

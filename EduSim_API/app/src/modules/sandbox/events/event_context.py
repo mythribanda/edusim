@@ -8,8 +8,8 @@ providing metadata (timestamps, frames, priority, affected body IDs) to enable
 deterministic timeline replays, analytical logging, and WebSocket syncing.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 import time
 import uuid
 from typing import Any, Dict, List, Optional

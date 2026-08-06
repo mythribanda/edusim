@@ -8,8 +8,8 @@ buttons) combined with live runtime states and Socratic interaction locks
 into clean generic frontend widget contracts.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from app.src.modules.sandbox.schemas.control_schema import SandboxControl
 from app.src.modules.sandbox.state.runtime_store import RuntimeStore

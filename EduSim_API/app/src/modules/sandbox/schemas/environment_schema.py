@@ -37,8 +37,8 @@ initialisation and applies it to the Matter.js world and PixiJS scene:
   - `fluid`    → drag coefficient applied by frontend physics loop
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from enum import Enum
 from typing import Any, Dict, Optional
 

@@ -8,8 +8,8 @@ It generates signals when simulations pause, resume, reset, or execute tick
 stepping frames, packaging them with execution diagnostics.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from app.src.modules.sandbox.events.event_types import RuntimeEvents
 from app.src.modules.sandbox.events.event_context import EventContext
 from app.src.modules.sandbox.events.event_bus import EventBus

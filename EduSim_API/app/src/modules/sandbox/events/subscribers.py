@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 logger = logging.getLogger("EduSim.modules.sandbox.events.subscribers")
 
@@ -11,7 +12,6 @@ analytics metrics, timeline replay recorders, simulated WebSockets, and
 conversational Socratic tutor responses.
 """
 
-from __future__ import annotations
 
 from typing import Any, Dict, List, Callable
 from app.src.modules.sandbox.events.event_context import EventContext

@@ -1,18 +1,14 @@
-import logging
-logger = logging.getLogger("EduSim.modules.sandbox.initialization.sandbox_initializer")
-
 """
 sandbox_initializer.py
 =======================
 Main Initialization Orchestrator for the EduSim Backend.
-
-This is the central physical compiler entry point. It receives raw, untrusted 
-AI-generated specifications or custom scenario templates, coordinates the stages 
-of the `InitializationPipeline` to build a valid `SandboxSchema`, and runs the 
-`RuntimeBuilder` to compile the final runtime payload consumed by the frontend.
+...
 """
 
+
 from __future__ import annotations
+import logging
+logger = logging.getLogger("EduSim.sandbox.initializer")
 
 import traceback
 from typing import Any, Dict, Optional, Callable

@@ -1,5 +1,5 @@
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select

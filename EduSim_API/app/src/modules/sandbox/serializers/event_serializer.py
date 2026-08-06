@@ -7,8 +7,8 @@ Converts EventContext signals (interactions, collisions, Socratic tutor cues)
 into compact websocket-safe or verbose analytical JSON payloads.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, List
 from app.src.modules.sandbox.events.event_context import EventContext
 

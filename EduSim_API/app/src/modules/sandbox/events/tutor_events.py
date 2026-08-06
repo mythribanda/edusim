@@ -11,8 +11,8 @@ hints), manages historical alerts to prevent duplicates, and dispatches:
 - QUESTION_GENERATED
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional, Set
 from app.src.modules.sandbox.events.event_types import TutorEvents

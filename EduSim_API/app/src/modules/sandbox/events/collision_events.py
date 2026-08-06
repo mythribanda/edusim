@@ -11,8 +11,8 @@ collision states, and dispatches:
 - COLLISION_END (contact separation frame)
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, List, Set, Tuple
 from app.src.modules.sandbox.events.event_types import CollisionEvents
 from app.src.modules.sandbox.events.event_context import EventContext

@@ -23,8 +23,8 @@ ARCHITECTURE & SCALABILITY
    quantum entanglement sandbox) are fully supported.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Dict, List, Optional
 from copy import deepcopy
 

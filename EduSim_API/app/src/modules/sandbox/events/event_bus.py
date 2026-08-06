@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 logger = logging.getLogger("EduSim.modules.sandbox.events.event_bus")
 
@@ -16,7 +17,6 @@ It supports:
 - Propagation cancellation support
 """
 
-from __future__ import annotations
 
 import fnmatch
 from typing import Any, Dict, List, Callable, Optional, Set

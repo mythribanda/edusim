@@ -13,8 +13,8 @@ Supports:
 - Lightweight Sync Frame Exports (high-speed delta/update payloads for websockets)
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict
 from app.src.modules.sandbox.state.runtime_store import RuntimeStore
 

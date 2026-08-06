@@ -1,5 +1,5 @@
-from __future__ import annotations
 
+from __future__ import annotations
 import logging
 logger = logging.getLogger("EduSim.api.persistence_router")
 

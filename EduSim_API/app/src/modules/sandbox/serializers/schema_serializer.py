@@ -7,8 +7,8 @@ Provides utility functions to dump baseline sandbox schemas and inspect versioni
 tokens, enabling metadata catalog listings.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict
 from pydantic import BaseModel
 from app.src.modules.sandbox.schemas.sandbox_schema import SandboxSchema

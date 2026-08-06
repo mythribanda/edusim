@@ -25,7 +25,11 @@ if DATABASE_URL.startswith("sqlite"):
         connect_args={"check_same_thread": False}
     )
 else:
-    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        connect_args={"sslmode": "require"}
+    )
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -44,6 +48,20 @@ def get_db():
         db.close()
 
 
+def _mask_database_url(url: str) -> str:
+    from urllib.parse import urlsplit, urlunsplit
+    try:
+        parts = urlsplit(url)
+        if parts.password or parts.username:
+            netloc = parts.hostname or ""
+            if parts.port:
+                netloc += f":{parts.port}"
+            return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+        return url
+    except Exception:
+        return "[unavailable]"
+
+
 def ping_database() -> dict[str, object]:
     try:
         with engine.connect() as connection:
@@ -57,12 +75,12 @@ def ping_database() -> dict[str, object]:
         return {
             "success": True,
             "message": f"Connected to {db_type}",
-            "database_url": DATABASE_URL,
+            "database_url": _mask_database_url(DATABASE_URL),
             "version": version,
         }
     except Exception as e:
         return {
             "success": False,
             "message": f"Database connection failed: {str(e)}",
-            "database_url": DATABASE_URL,
+            "database_url": _mask_database_url(DATABASE_URL),
         }

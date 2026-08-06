@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 from sqlalchemy.orm import Session
-from app.src.models.persistence import Subject, Chapter, Topic
+from app.src.models.persistence import Subject, Chapter, Topic, CurriculumClass
 
 logger = logging.getLogger("EduSim.curriculum_loader")
 
@@ -22,13 +22,27 @@ def populate_curriculum(db: Session) -> None:
 
     logger.info("[Curriculum Loader] Populating database from curriculum.json...")
     for class_item in data.get("classes", []):
+        class_id = class_item.get("id")
         class_name = class_item.get("name")
+        class_desc = class_item.get("description")
+
+        # Get or create CurriculumClass
+        curriculum_class = db.query(CurriculumClass).filter(CurriculumClass.id == class_id).first()
+        if not curriculum_class:
+            curriculum_class = CurriculumClass(
+                id=class_id,
+                name=class_name,
+                description=class_desc
+            )
+            db.add(curriculum_class)
+            db.flush()
+
         for sub_item in class_item.get("subjects", []):
             code = sub_item.get("id")
-            # Reuse subject if code already registered (since subjects can span multiple classes)
-            subject = db.query(Subject).filter(Subject.code == code).first()
+            subject = db.query(Subject).filter(Subject.code == code, Subject.class_id == class_id).first()
             if not subject:
                 subject = Subject(
+                    class_id=class_id,
                     code=code,
                     name=sub_item.get("name"),
                     description=sub_item.get("description"),
@@ -39,20 +53,31 @@ def populate_curriculum(db: Session) -> None:
 
             chapters = sub_item.get("chapters", [])
             if isinstance(chapters, list):
+                subject_chapters = set()
                 for chap_item in chapters:
+                    chap_name = chap_item.get("name")
+                    if chap_name in subject_chapters:
+                        continue
+                    subject_chapters.add(chap_name)
+
                     chapter = Chapter(
                         subject_id=subject.id,
-                        name=chap_item.get("name"),
-                        class_name=class_name,
+                        name=chap_name,
                         description=chap_item.get("description")
                     )
                     db.add(chapter)
                     db.flush()
 
+                    chapter_topics = set()
                     for top_item in chap_item.get("topics", []):
+                        top_name = top_item.get("name")
+                        if top_name in chapter_topics:
+                            continue
+                        chapter_topics.add(top_name)
+
                         topic = Topic(
                             chapter_id=chapter.id,
-                            name=top_item.get("name"),
+                            name=top_name,
                             description=top_item.get("description")
                         )
                         db.add(topic)
@@ -61,8 +86,7 @@ def populate_curriculum(db: Session) -> None:
                 for i in range(1, int(chapters) + 1):
                     chapter = Chapter(
                         subject_id=subject.id,
-                        name=f"Chapter {i}",
-                        class_name=class_name
+                        name=f"Chapter {i}"
                     )
                     db.add(chapter)
                     db.flush()

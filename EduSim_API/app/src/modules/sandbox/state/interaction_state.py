@@ -11,8 +11,8 @@ It exposes locks to temporarily suspend interaction during tutor prompts
 or replay steps.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 

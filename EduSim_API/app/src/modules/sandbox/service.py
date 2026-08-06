@@ -10,8 +10,8 @@ triggers mutations, and organizes snapshots/checkpoint timelines.
 It acts as an adapter between the FastAPI boundary and internal engine mechanics.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 import uuid
 from typing import Any, Dict, Optional
 from threading import Lock

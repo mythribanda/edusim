@@ -91,3 +91,6 @@ websockets==16.0
 xxhash==3.7.0
 yarl==1.23.0
 zstandard==0.25.0
+google-auth==2.49.2
+authlib==1.3.1
+

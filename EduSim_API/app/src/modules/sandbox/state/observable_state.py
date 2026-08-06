@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 logger = logging.getLogger("EduSim.modules.sandbox.state.observable_state")
 
@@ -16,7 +17,6 @@ It implements a centralized reactive dependency graph featuring:
 - Aggregate functions (sum, average, max, min, product)
 """
 
-from __future__ import annotations
 
 import re
 import math

@@ -9,8 +9,8 @@ conservation law violations, aggregate totals) into event signals.
 Subscribers can filter by specific target observable IDs.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from app.src.modules.sandbox.events.event_types import ObservableEvents
 from app.src.modules.sandbox.events.event_context import EventContext

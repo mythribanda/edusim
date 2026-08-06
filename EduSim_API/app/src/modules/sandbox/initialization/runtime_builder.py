@@ -9,8 +9,8 @@ of our physics compiler, mapping backend Pydantic states to standard JSON contra
 consumable by generic Matter.js/PixiJS runtime engines.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 import json
 from typing import Any, Dict
 from app.src.modules.sandbox.schemas.sandbox_schema import SandboxSchema

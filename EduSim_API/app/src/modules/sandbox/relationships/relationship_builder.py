@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 logger = logging.getLogger("EduSim.modules.sandbox.relationships.relationship_builder")
 
@@ -31,7 +32,6 @@ ARCHITECTURE & COMPOSITION
    requires only registering a new detector class without altering the build loop.
 """
 
-from __future__ import annotations
 
 from typing import List, Dict, Any, Type
 from copy import deepcopy

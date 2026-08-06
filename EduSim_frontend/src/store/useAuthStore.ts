@@ -26,6 +26,7 @@ interface AuthState {
   
   // Actions
   login: (credentials: { email: string; password: string }) => Promise<boolean>;
+  loginWithGoogle: (idToken: string) => Promise<boolean>;
   register: (data: { name: string; email: string; password: string; role?: string; mobile?: string; mobile_number?: string }) => Promise<boolean>;
   logout: () => void;
   checkAuth: () => Promise<boolean>;
@@ -139,6 +140,56 @@ export const useAuthStore = create<AuthState>()(
           } else if (!error.message || lowerMsg.includes("internal server") || lowerMsg.includes("http 5")) {
             msg = "Unable to login. Please try again";
           }
+          toast.error(msg);
+          return false;
+        }
+      },
+
+      loginWithGoogle: async (idToken) => {
+        set({ isLoading: true });
+        
+        try {
+          const response = await fetchJsonWithRetry<any>(getApiUrl("/api/auth/google"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id_token: idToken }),
+          });
+
+          const { access_token, refresh_token, user } = response;
+
+          let bootstrapUser = user as User;
+          try {
+            bootstrapUser = await fetchJsonWithRetry<User>(getApiUrl("/api/auth/me"), {
+              headers: { Authorization: `Bearer ${access_token}` },
+              scope: "authBootstrap",
+            });
+          } catch (meError) {
+            if (isUnauthorizedError(meError)) {
+              set({
+                user: null,
+                token: null,
+                refreshToken: null,
+                isAuthenticated: false,
+                isLoading: false,
+              });
+              syncLegacyToken(null);
+              toast.error("Session is invalid. Please sign in again.");
+              return false;
+            }
+          }
+
+          set({
+            user: bootstrapUser,
+            token: access_token,
+            refreshToken: refresh_token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          syncLegacyToken(access_token);
+          return true;
+        } catch (error: any) {
+          set({ isLoading: false });
+          let msg = error.message || "Unable to sign in with Google. Please try again";
           toast.error(msg);
           return false;
         }

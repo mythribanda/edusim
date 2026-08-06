@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 logger = logging.getLogger("EduSim.modules.sandbox.initialization.object_initializer")
 
@@ -18,7 +19,6 @@ It handles:
   such as custom rocket or spring body configurations)
 """
 
-from __future__ import annotations
 
 import uuid
 from typing import Any, Dict, List, Optional, Callable

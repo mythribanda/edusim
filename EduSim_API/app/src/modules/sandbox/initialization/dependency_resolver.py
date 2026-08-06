@@ -14,8 +14,8 @@ It contains:
 - Dynamic DFS circular reference tracking with precise error messages
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import List, Dict, Set, Optional, Tuple
 from app.src.modules.sandbox.schemas.sandbox_schema import SandboxSchema
 from app.src.modules.sandbox.schemas.observable_schema import SandboxObservable
