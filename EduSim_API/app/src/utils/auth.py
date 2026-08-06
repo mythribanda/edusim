@@ -4,8 +4,14 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 import jwt
 
-# SECRET_KEY for signing JWTs
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "edusim-super-secret-key-123456789")
+# SECRET_KEY for signing JWTs — must be set in the environment; no insecure fallback.
+_jwt_secret = os.getenv("JWT_SECRET_KEY")
+if not _jwt_secret:
+    raise RuntimeError(
+        "JWT_SECRET_KEY environment variable is not set. "
+        "Generate one with: python -c 'import secrets; print(secrets.token_hex(32))'"
+    )
+SECRET_KEY: str = _jwt_secret
 ALGORITHM = "HS256"
 
 # Access token expiry (e.g., 30 minutes)

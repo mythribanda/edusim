@@ -1,5 +1,6 @@
 import uuid
 import random
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
@@ -19,6 +20,7 @@ from app.src.utils.auth import (
     decode_token
 )
 
+logger = logging.getLogger("EduSim.auth")
 auth_router = APIRouter(tags=["Authentication"])
 
 
@@ -127,7 +129,7 @@ async def get_current_user(
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(
-            status_code=status.HTTP_418_IM_A_TEAPOT,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token payload contains no user ID"
         )
     
@@ -140,7 +142,7 @@ async def get_current_user(
 
     mark_user_active(db, user)
     db.commit()
-    print("[Database] User last active status saved in the database: updated")
+    logger.info("User last_active_at updated (user_id=%s)", user.id)
     
     return user
 
@@ -180,8 +182,6 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
             detail="Password cannot exceed 72 bytes"
         )
 
-    print("PASSWORD:", request.password)
-    print("PASSWORD LENGTH:", len(request.password.encode("utf-8")))
 
     # Generate verification token
     verification_token = str(uuid.uuid4())
@@ -202,12 +202,12 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
     
     db.add(new_user)
     db.commit()
-    print("[Database] User account saved in the database: updated")
+    logger.info("User registered (user_id=%s, email=%s)", new_user.id, email)
     db.refresh(new_user)
     
-    # Simulated email sending
-    print(f"\n[EMAIL SIMULATOR] Sent activation email to {new_user.email}")
-    print(f"[EMAIL SIMULATOR] Activation Link: http://localhost:5173/login?verify_token={verification_token}\n")
+    # TODO:MOCK — replace these two lines when a real email provider is wired in
+    logger.warning("[EMAIL SIMULATOR] Sent activation email to %s", new_user.email)
+    logger.warning("[EMAIL SIMULATOR] Activation link sent (token omitted from logs)")
     
     return RegisterResponse(
         success=True,
@@ -221,50 +221,6 @@ def login(request: LoginRequest, http_request: Request, db: Session = Depends(ge
     """Logs in user using email and password, issuing access & refresh tokens."""
     email = normalize_email(request.email)
     
-    # Conditional admin login check
-    if email == "admin@gmail.com" and request.password == "Admin@123":
-        user = db.query(User).filter(func.lower(User.email) == "admin@gmail.com").first()
-        if not user:
-            user = User(
-                name="Administrator",
-                email="admin@gmail.com",
-                password_hash=hash_password("Admin@123"),
-                role="teacher",
-                is_email_verified=True,
-                is_mobile_verified=True
-            )
-            db.add(user)
-            db.commit()
-            print("[Database] Admin user saved in the database: updated")
-            db.refresh(user)
-
-        record_login_event(
-            db,
-            user=user,
-            email=user.email,
-            success=True,
-            provider="password",
-            ip_address=http_request.client.host if http_request.client else None,
-            user_agent=http_request.headers.get("user-agent"),
-            metadata={"mode": "admin-bypass"},
-        )
-        db.commit()
-        print("[Database] Login event saved in the database: updated")
-            
-        access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
-        refresh_token = create_refresh_token(data={"sub": str(user.id)})
-        record_user_session(db, user=user, session_key=refresh_token, metadata={"mode": "admin-bypass"})
-        record_refresh_token(db, user=user, token_jti=refresh_token, metadata={"mode": "admin-bypass"})
-        db.commit()
-        print("[Database] User session saved in the database: updated")
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-            "user": user,
-            "message": "Welcome back!"
-        }
-
     user = db.query(User).filter(func.lower(User.email) == email).first()
     if not user or not verify_password(request.password, user.password_hash):
         record_login_event(
@@ -278,7 +234,7 @@ def login(request: LoginRequest, http_request: Request, db: Session = Depends(ge
             failure_reason="Invalid email or password",
         )
         db.commit()
-        print("[Database] Login failure event saved in the database: updated")
+        logger.info("Login failure recorded (email=%s)", email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
@@ -314,7 +270,7 @@ def login(request: LoginRequest, http_request: Request, db: Session = Depends(ge
         metadata={"source": "password-login"},
     )
     db.commit()
-    print("[Database] User session saved in the database: updated")
+    logger.info("Login success — session recorded (user_id=%s)", user.id)
     
     return {
         "access_token": access_token,
@@ -352,7 +308,7 @@ def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
     )
     record_refresh_token(db, user=user, token_jti=request.refresh_token, metadata={"source": "refresh"})
     db.commit()
-    print("[Database] User session saved in the database: updated")
+    logger.info("Token refresh — session recorded (user_id=%s)", user.id)
         
     # Re-issue both tokens
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
@@ -379,7 +335,7 @@ def verify_email(request: VerifyEmailRequest, db: Session = Depends(get_db)):
     user.is_email_verified = True
     user.verification_token = None
     db.commit()
-    print("[Database] Email verification saved in the database: updated")
+    logger.info("Email verified (user_id=%s)", user.id)
     
     return {"success": True, "message": "Email verified successfully."}
 
@@ -396,12 +352,13 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
         )
     reset_token = str(uuid.uuid4())
     user.verification_token = reset_token
+    user.reset_token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
     db.commit()
-    print("[Database] Password reset token saved in the database: updated")
+    logger.info("Password reset token issued (user_id=%s)", user.id)
     
-    # Simulated email sending
-    print(f"\n[EMAIL SIMULATOR] Sent password reset instructions to {user.email}")
-    print(f"[EMAIL SIMULATOR] Password Reset Link: http://localhost:5173/login?reset_token={reset_token}\n")
+    # TODO:MOCK — replace these two lines when a real email provider is wired in
+    logger.warning("[EMAIL SIMULATOR] Sent password reset instructions to %s", user.email)
+    logger.warning("[EMAIL SIMULATOR] Reset link sent (token omitted from logs)")
     
     return {"success": True, "message": "Password reset instructions sent."}
 
@@ -415,11 +372,27 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired reset token"
         )
-        
+
+    # Validate expiry — mirrors the otp_expires_at check in verify_otp()
+    token_expiry = user.reset_token_expires_at
+    if not token_expiry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    if token_expiry.tzinfo is None:
+        token_expiry = token_expiry.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > token_expiry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
     user.password_hash = hash_password(request.new_password)
     user.verification_token = None
+    user.reset_token_expires_at = None
     db.commit()
-    print("[Database] Password reset completed saved in the database: updated")
+    logger.info("Password reset completed (user_id=%s)", user.id)
     
     return {"success": True, "message": "Password reset completed successfully."}
 
@@ -447,7 +420,7 @@ def send_otp(request: SendOtpRequest, db: Session = Depends(get_db)):
             )
             db.add(user)
             db.commit()
-            print("[Database] Mock user saved in the database: updated")
+            logger.info("Mock mobile user created (mobile=%s)", request.mobile_number)
             db.refresh(user)
 
     otp = f"{random.randint(100000, 999999)}"
@@ -455,12 +428,16 @@ def send_otp(request: SendOtpRequest, db: Session = Depends(get_db)):
     
     user.otp_code = otp
     user.otp_expires_at = expires
+    # Reset brute-force counters so the new OTP starts with a clean slate
+    user.otp_attempt_count = 0
+    user.otp_locked_until = None
     db.commit()
-    print("[Database] OTP code saved in the database: updated")
+    logger.info("OTP issued (user_id=%s)", user.id)
     
-    # Simulated SMS
-    print(f"\n[SMS SIMULATOR] Sent OTP '{otp}' to {request.country_code}{request.mobile_number}")
-    print(f"[SMS SIMULATOR] Code will expire in 10 minutes.\n")
+    # TODO:MOCK — replace these two lines when a real SMS provider is wired in
+    logger.warning("[SMS SIMULATOR] Sent OTP to %s%s (value omitted from logs)",
+                   request.country_code, request.mobile_number)
+    logger.warning("[SMS SIMULATOR] Code will expire in 10 minutes")
     
     return {"success": True, "message": "OTP sent successfully."}
 
@@ -468,39 +445,86 @@ def send_otp(request: SendOtpRequest, db: Session = Depends(get_db)):
 @auth_router.post("/verify-otp", response_model=TokenResponse)
 def verify_otp(request: VerifyOtpRequest, db: Session = Depends(get_db)):
     """Verifies OTP and logs in user, issuing tokens."""
+    _MAX_ATTEMPTS = 5
+    _LOCKOUT_MINUTES = 15
+
     user = db.query(User).filter(User.mobile_number == request.mobile_number).first()
-    if not user or not user.otp_code or user.otp_code != request.otp_code:
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid OTP code"
         )
-        
+
     now = datetime.now(timezone.utc)
-    # Ensure expires is timezone-aware for comparison, or normalize both
+
+    # --- Lockout check ---
+    if user.otp_locked_until:
+        locked_until = user.otp_locked_until
+        if locked_until.tzinfo is None:
+            locked_until = locked_until.replace(tzinfo=timezone.utc)
+        if now < locked_until:
+            retry_after = int((locked_until - now).total_seconds())
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    f"Too many failed attempts. "
+                    f"OTP verification is locked for {retry_after} more second(s). "
+                    f"Request a new OTP to reset the lock."
+                ),
+            )
+
+    # --- OTP presence / correctness check ---
+    if not user.otp_code or user.otp_code != request.otp_code:
+        user.otp_attempt_count = (user.otp_attempt_count or 0) + 1
+        if user.otp_attempt_count >= _MAX_ATTEMPTS:
+            user.otp_locked_until = now + timedelta(minutes=_LOCKOUT_MINUTES)
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    f"Too many failed attempts. "
+                    f"OTP verification is locked for {_LOCKOUT_MINUTES} minutes. "
+                    f"Request a new OTP to reset the lock."
+                ),
+            )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP code"
+        )
+
+    # --- Expiry check ---
     otp_expiry = user.otp_expires_at
+    if not otp_expiry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP code has expired"
+        )
     if otp_expiry.tzinfo is None:
         otp_expiry = otp_expiry.replace(tzinfo=timezone.utc)
-        
     if now > otp_expiry:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="OTP code has expired"
         )
-        
+
+    # --- Success: clear OTP fields and reset brute-force counters ---
     user.is_mobile_verified = True
     user.otp_code = None
     user.otp_expires_at = None
-    user.last_login_at = datetime.now(timezone.utc)
-    user.last_active_at = user.last_login_at
+    user.otp_attempt_count = 0
+    user.otp_locked_until = None
+    user.last_login_at = now
+    user.last_active_at = now
     db.commit()
-    print("[Database] User verification and session saved in the database: updated")
+    logger.info("OTP verified — mobile verified, session created (user_id=%s)", user.id)
     
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
     record_user_session(db, user=user, session_key=refresh_token, metadata={"source": "otp"})
     record_refresh_token(db, user=user, token_jti=refresh_token, metadata={"source": "otp"})
     db.commit()
-    print("[Database] User session saved in the database: updated")
+    logger.info("OTP login — tokens issued (user_id=%s)", user.id)
     
     return {
         "access_token": access_token,

@@ -68,9 +68,9 @@ archive/
 assets/
 public/
 
-# Ignore lock files only if you intentionally don't want them tracked
-# Uncomment if you don't want lockfiles in git
-# bun.lockb
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
+# This project uses Bun as its package manager.
+# bun.lockb is intentionally tracked — it is the source of truth for
+# reproducible installs. Do NOT commit lockfiles from other package managers.
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

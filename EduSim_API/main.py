@@ -3,6 +3,12 @@ import os
 # Configure Python Path to allow loading absolute namespaces (rag, tutor, sandbox)
 root_dir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(root_dir)
+
+# CORS origins — set ALLOWED_ORIGINS as a comma-separated string in the environment.
+# Example: ALLOWED_ORIGINS=https://app.example.com,https://www.example.com
+# Defaults to localhost:5173 for local development.
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 sys.path.append(os.path.join(root_dir, "app", "src", "modules"))
 sys.path.append(os.path.join(root_dir, "app", "src"))
 
@@ -31,13 +37,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("EduSim")
 logger.info("EduSim Backend Starting Up...")
-print("Formula Registry Loaded")
-print("Vector Store Loaded")
-print("Chapter Index Loaded")
-print("Formula APIs Ready")
-print("Question APIs Ready")
-print("RAG Ready")
-print("Server Ready")
+logger.info("Formula Registry Loaded")
+logger.info("Vector Store Loaded")
+logger.info("Chapter Index Loaded")
+logger.info("Formula APIs Ready")
+logger.info("Question APIs Ready")
+logger.info("RAG Ready")
+logger.info("Server Ready")
 
 from contextlib import asynccontextmanager
 from app.src.modules.legacy_rag import vector_store
@@ -85,10 +91,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS
+# CORS — origins are restricted to the ALLOWED_ORIGINS env var (see top of file).
+# allow_credentials=True is safe here because origins are never wildcarded.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # change later in production
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

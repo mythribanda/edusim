@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, String, Boolean, UUID, Text, Index
+from sqlalchemy import Column, DateTime, Integer, String, Boolean, UUID, Text, Index
 from sqlalchemy.sql import func
 
 from app.src.config.database import Base
@@ -27,6 +27,9 @@ class User(Base):
     verification_token = Column(String, nullable=True)
     otp_code = Column(String, nullable=True)
     otp_expires_at = Column(DateTime(timezone=True), nullable=True)
+    otp_attempt_count = Column(Integer, nullable=False, default=0, server_default="0")
+    otp_locked_until = Column(DateTime(timezone=True), nullable=True)
+    reset_token_expires_at = Column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_users_email", "email"),
