@@ -31,6 +31,12 @@ class User(Base):
     otp_locked_until = Column(DateTime(timezone=True), nullable=True)
     reset_token_expires_at = Column(DateTime(timezone=True), nullable=True)
 
+    @property
+    def auth_provider(self) -> str:
+        if self.password_hash and self.password_hash.startswith("OAUTH_GOOGLE_SENTINEL_"):
+            return "google"
+        return "password"
+
     __table_args__ = (
         Index("ix_users_email", "email"),
         Index("ix_users_role", "role"),

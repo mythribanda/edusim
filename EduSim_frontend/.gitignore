@@ -68,9 +68,8 @@ archive/
 assets/
 public/
 
-# This project uses Bun as its package manager.
-# bun.lockb is intentionally tracked — it is the source of truth for
-# reproducible installs. Do NOT commit lockfiles from other package managers.
-package-lock.json
+# Package manager lockfiles
 yarn.lock
 pnpm-lock.yaml
+bun.lockb
+bun.lock

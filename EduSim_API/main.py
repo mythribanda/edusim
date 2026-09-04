@@ -4,9 +4,12 @@ import os
 root_dir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(root_dir)
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # CORS origins — set ALLOWED_ORIGINS as a comma-separated string in the environment.
 # Example: ALLOWED_ORIGINS=https://app.example.com,https://www.example.com
-# Defaults to localhost:5173 for local development.
+# Defaults to localhost:8080 for local development.
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
 ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 sys.path.append(os.path.join(root_dir, "app", "src", "modules"))

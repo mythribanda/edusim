@@ -98,9 +98,16 @@ class UserResponse(BaseModel):
     is_email_verified: bool
     is_mobile_verified: bool
     created_at: Optional[datetime] = None
+    auth_provider: str = "password"
 
     class Config:
         from_attributes = True
+
+
+class UpdateProfileRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    mobile_number: Optional[str] = None
+
 
 
 class TokenResponse(BaseModel):
@@ -295,41 +302,29 @@ def login(request: LoginRequest, http_request: Request, db: Session = Depends(ge
 def google_login(request: GoogleLoginRequest, http_request: Request, db: Session = Depends(get_db)):
     """Logs in or registers user using a Google ID token."""
     # 1. Verify the ID Token
-    if request.id_token.startswith("mock_google_token_"):
-        # Mock mode for local testing
-        mock_email = request.id_token.replace("mock_google_token_", "")
-        id_info = {
-            "iss": "accounts.google.com",
-            "email": mock_email,
-            "name": mock_email.split("@")[0].capitalize(),
-            "picture": None,
-            "email_verified": True
-        }
-        logger.info("Using mock Google OAuth verification (email=%s)", mock_email)
-    else:
-        if not GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID == "your-google-client-id-here.apps.googleusercontent.com":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Google OAuth Client ID is not configured on the backend"
-            )
-        try:
-            id_info = id_token.verify_oauth2_token(
-                request.id_token,
-                google_requests.Request(),
-                GOOGLE_CLIENT_ID
-            )
-        except ValueError as e:
-            logger.error("Google ID Token verification failed: %s", str(e))
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid Google ID Token"
-            )
+    if not GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID == "your-google-client-id-here.apps.googleusercontent.com":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google OAuth Client ID is not configured on the backend"
+        )
+    try:
+        id_info = id_token.verify_oauth2_token(
+            request.id_token,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+    except ValueError as e:
+        logger.error("Google ID Token verification failed: %s", str(e))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google ID Token"
+        )
 
-        if id_info.get("iss") not in ["accounts.google.com", "https://accounts.google.com"]:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token issuer"
-            )
+    if id_info.get("iss") not in ["accounts.google.com", "https://accounts.google.com"]:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token issuer"
+        )
 
     email = normalize_email(id_info.get("email"))
     name = id_info.get("name")
@@ -337,6 +332,18 @@ def google_login(request: GoogleLoginRequest, http_request: Request, db: Session
 
     # 2. Look up the user by email
     user = db.query(User).filter(func.lower(User.email) == email).first()
+
+    if user:
+        from app.src.models.persistence import UserSetting
+        google_connected = db.query(UserSetting).filter(
+            UserSetting.user_id == user.id,
+            UserSetting.setting_key == "google_connected"
+        ).first()
+        if google_connected and google_connected.setting_value == False:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google Sign-In has been disconnected for this account. Please use password login."
+            )
 
     # 3. Create user if not exists
     if not user:
@@ -661,3 +668,318 @@ def verify_otp(request: VerifyOtpRequest, db: Session = Depends(get_db)):
 def get_me(current_user: User = Depends(get_current_user)):
     """Returns profile for currently logged in user."""
     return current_user
+
+
+@auth_router.get("/profile/stats")
+def get_profile_stats(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from app.src.models.persistence import SimulationHistory, FormulaHistory, StudentProfile, Topic
+
+    # 1. Simulations run
+    simulations_count = db.query(SimulationHistory).filter(
+        SimulationHistory.user_id == current_user.id,
+        SimulationHistory.is_active == True
+    ).count()
+
+    # 2. Formulas explored
+    formulas_count = db.query(FormulaHistory).filter(
+        FormulaHistory.user_id == current_user.id
+    ).count()
+
+    # 3. Chapter/topic progress (completed vs total)
+    profile_obj = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    mastered_count = 0
+    if profile_obj and profile_obj.mastered_topics:
+        mastered_count = len(profile_obj.mastered_topics)
+    
+    total_topics_count = db.query(Topic).count()
+
+    return {
+        "simulations_run": simulations_count,
+        "formulas_explored": formulas_count,
+        "topics_completed": mastered_count,
+        "total_topics": total_topics_count,
+        "last_active_at": current_user.last_active_at.isoformat() if current_user.last_active_at else None
+    }
+
+
+@auth_router.patch("/me", response_model=UserResponse)
+def update_profile(
+    request: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if request.name is not None:
+        name_stripped = request.name.strip()
+        if len(name_stripped) < 2 or len(name_stripped) > 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Name must be between 2 and 100 characters"
+            )
+        current_user.name = name_stripped
+
+    if request.mobile_number is not None:
+        if request.mobile_number == "":
+            current_user.mobile_number = None
+            current_user.is_mobile_verified = False
+        else:
+            mobile = request.mobile_number.strip()
+            if not mobile.isdigit() or len(mobile) != 10:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid mobile number"
+                )
+            
+            # Check uniqueness
+            existing_mobile_user = db.query(User).filter(
+                User.mobile_number == mobile,
+                User.id != current_user.id
+            ).first()
+            if existing_mobile_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Mobile number is already registered"
+                )
+            
+            # If the mobile number changes, reset the verification status
+            if current_user.mobile_number != mobile:
+                current_user.mobile_number = mobile
+                current_user.is_mobile_verified = False
+
+    db.commit()
+    db.refresh(current_user)
+    logger.info("Profile updated (user_id=%s)", current_user.id)
+    return current_user
+
+
+@auth_router.post("/resend-verification")
+def resend_verification(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.is_email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is already verified"
+        )
+    
+    # Generate new token
+    verification_token = str(uuid.uuid4())
+    current_user.verification_token = verification_token
+    db.commit()
+    
+    logger.warning("[EMAIL SIMULATOR] Resent activation email to %s", current_user.email)
+    return {"success": True, "message": "Verification link sent! (Simulated)"}
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8, max_length=72)
+
+
+class UpdateSettingsRequest(BaseModel):
+    email_notifications: Optional[bool] = None
+    hint_frequency: Optional[str] = None
+
+
+@auth_router.post("/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Check if user has a password set (not a Google OAuth sentinel)
+    has_password = not current_user.password_hash.startswith("OAUTH_GOOGLE_SENTINEL_")
+    if has_password:
+        if not verify_password(request.current_password, current_user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect current password"
+            )
+    
+    # Hash and update the new password
+    current_user.password_hash = hash_password(request.new_password)
+    db.commit()
+    logger.info("Password changed (user_id=%s)", current_user.id)
+    return {"success": True, "message": "Password changed successfully."}
+
+
+@auth_router.get("/settings")
+def get_settings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from app.src.models.persistence import UserSetting
+    
+    email_notifications = db.query(UserSetting).filter(
+        UserSetting.user_id == current_user.id,
+        UserSetting.setting_key == "email_notifications"
+    ).first()
+    
+    hint_frequency = db.query(UserSetting).filter(
+        UserSetting.user_id == current_user.id,
+        UserSetting.setting_key == "hint_frequency"
+    ).first()
+    
+    google_connected = db.query(UserSetting).filter(
+        UserSetting.user_id == current_user.id,
+        UserSetting.setting_key == "google_connected"
+    ).first()
+
+    return {
+        "email_notifications": email_notifications.setting_value if email_notifications else True,
+        "hint_frequency": hint_frequency.setting_value if hint_frequency else "medium",
+        "google_connected": google_connected.setting_value if google_connected else True
+    }
+
+
+@auth_router.patch("/settings")
+def update_settings(
+    request: UpdateSettingsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from app.src.services.persistence_service import upsert_user_setting
+    
+    if request.email_notifications is not None:
+        upsert_user_setting(db, user=current_user, key="email_notifications", value=request.email_notifications)
+        
+    if request.hint_frequency is not None:
+        if request.hint_frequency not in ["low", "medium", "high"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid hint frequency value"
+            )
+        upsert_user_setting(db, user=current_user, key="hint_frequency", value=request.hint_frequency)
+        
+    db.commit()
+    logger.info("Settings updated (user_id=%s)", current_user.id)
+    return {"success": True, "message": "Settings updated successfully."}
+
+
+@auth_router.post("/google/disconnect")
+def disconnect_google(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Check if user has a password set (not a Google OAuth sentinel)
+    if current_user.password_hash.startswith("OAUTH_GOOGLE_SENTINEL_"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot disconnect Google because you do not have a password set. Set a password in Account Settings first."
+        )
+        
+    from app.src.services.persistence_service import upsert_user_setting
+    upsert_user_setting(db, user=current_user, key="google_connected", value=False)
+    db.commit()
+    logger.info("Google connected disconnected for user_id=%s", current_user.id)
+    return {"success": True, "message": "Google connected account disconnected."}
+
+
+@auth_router.post("/google/connect")
+def connect_google(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from app.src.services.persistence_service import upsert_user_setting
+    upsert_user_setting(db, user=current_user, key="google_connected", value=True)
+    db.commit()
+    logger.info("Google connected connected for user_id=%s", current_user.id)
+    return {"success": True, "message": "Google connected account connected."}
+
+
+class LogoutOtherRequest(BaseModel):
+    current_session_id: Optional[str] = None
+
+
+@auth_router.get("/sessions")
+def get_sessions(
+    x_refresh_token: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from app.src.models.persistence import UserSession
+    
+    sessions = db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_active == True
+    ).all()
+    
+    return [{
+        "id": str(s.id),
+        "device_info": s.device_info,
+        "user_agent": s.user_agent,
+        "ip_address": s.ip_address,
+        "last_login_at": s.last_login_at.isoformat() if s.last_login_at else None,
+        "created_at": s.created_at.isoformat(),
+        "is_current": s.session_key == x_refresh_token if x_refresh_token else False
+    } for s in sessions]
+
+
+@auth_router.delete("/sessions/{session_id}")
+def delete_session(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from app.src.models.persistence import UserSession
+    try:
+        sess_uuid = uuid.UUID(session_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session ID format")
+        
+    session = db.query(UserSession).filter(
+        UserSession.id == sess_uuid,
+        UserSession.user_id == current_user.id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    session.is_active = False
+    db.commit()
+    logger.info("Session revoked (session_id=%s, user_id=%s)", session_id, current_user.id)
+    return {"success": True, "message": "Session revoked."}
+
+
+@auth_router.delete("/sessions/other")
+def logout_other_sessions(
+    request: LogoutOtherRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from app.src.models.persistence import UserSession
+    query = db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_active == True
+    )
+    
+    if request.current_session_id:
+        try:
+            sess_uuid = uuid.UUID(request.current_session_id)
+            query = query.filter(UserSession.id != sess_uuid)
+        except ValueError:
+            pass
+            
+    sessions = query.all()
+    for s in sessions:
+        s.is_active = False
+        
+    db.commit()
+    logger.info("Other sessions revoked for user_id=%s", current_user.id)
+    return {"success": True, "message": "All other sessions logged out."}
+
+
+@auth_router.delete("/me")
+def delete_me(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    db.delete(current_user)
+    db.commit()
+    logger.info("User account deleted (user_id=%s)", current_user.id)
+    return {"success": True, "message": "Account deleted successfully."}
+
+
