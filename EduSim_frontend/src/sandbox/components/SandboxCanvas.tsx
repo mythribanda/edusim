@@ -710,7 +710,7 @@ export const SandboxCanvas: React.FC = () => {
       pushExplanation({
         title: 'Connection Error',
         explanation: (e as Error).message,
-        effects: ['Ensure the EduSim API is running on port 8000'],
+        effects: ['Ensure the EduSim API is running on port 8001'],
         formula: '',
         suggestions: []
       });

@@ -2,9 +2,9 @@ import json
 import logging
 import os
 import re
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
-from threading import Lock
 from typing import Any
 from uuid import uuid4
 
@@ -19,7 +19,7 @@ from app.src.modules.legacy_rag.vector_loader import vector_store
 from tutor.subject_classifier import detect_subject
 
 PERSISTENCE_FILE = Path("data/generated_simulations.json")
-_store_lock = Lock()
+_store_lock = asyncio.Lock()
 
 # --- Granular Service Functions ---
 
@@ -69,7 +69,7 @@ def _write_store(items: list[dict[str, Any]]):
     with open(PERSISTENCE_FILE, "w", encoding="utf-8") as file:
         json.dump(items, file, indent=2, ensure_ascii=True)
 
-def generate_simulation_synthesis(prompt: str, topic: str | None = None):
+async def generate_simulation_synthesis(prompt: str, topic: str | None = None):
     """Full generation flow with persistence."""
     # 1. Retrieve
     context = retrieve_context(prompt, topic)
@@ -78,25 +78,24 @@ def generate_simulation_synthesis(prompt: str, topic: str | None = None):
     dsl_prompt = build_dsl_prompt(prompt, context)
     
     # 3. Generate
-    raw_generated = generate_dsl(dsl_prompt)
+    raw_text = generate_llm_text(dsl_prompt, temperature=0.2, max_output_tokens=3500)
     
     # 4. Sanitize
-    response_json = sanitize_dsl(raw_generated)
+    parsed_json = sanitize_json(raw_text)
     
     # 5. Validate
-    valid_response = validate_dsl(response_json)
-    
-    # Compile and Serialize using the unified Sandbox & Serializer subsystem!
+    valid_response = validate_simulation(parsed_json)
+    if not valid_response["success"]:
+        raise ValueError(f"DSL validation failed: {valid_response['errors']}")
+
+    # 6. Physical Compiler Pipeline & Initial Observable State Pre-computation
     try:
         from app.src.modules.sandbox.initialization.sandbox_initializer import SandboxInitializer
         from app.src.modules.sandbox.state.runtime_store import RuntimeStore
         from app.src.modules.sandbox.serializers import RuntimeSerializer
-
-        spec_data = valid_response.get("dsl", valid_response)
         
-        # Run physical compiler pipeline
         initializer = SandboxInitializer()
-        sandbox_schema = initializer.pipeline.execute(spec_data)
+        sandbox_schema = initializer.pipeline.execute(valid_response.get("dsl", valid_response))
         
         # Hydrate state store
         store = RuntimeStore(sandbox_schema)
@@ -116,16 +115,16 @@ def generate_simulation_synthesis(prompt: str, topic: str | None = None):
         "payload": compiled_payload
     }
 
-    with _store_lock:
+    async with _store_lock:
         items = _read_store()
         items.insert(0, item)
         _write_store(items)
 
     return item
 
-def list_simulation_synthesis(limit: int = 30):
+async def list_simulation_synthesis(limit: int = 30):
     safe_limit = min(max(limit, 1), 100)
-    with _store_lock:
+    async with _store_lock:
         items = _read_store()
 
     trimmed = []
@@ -138,8 +137,8 @@ def list_simulation_synthesis(limit: int = 30):
         })
     return trimmed
 
-def get_simulation_synthesis(simulation_id: str):
-    with _store_lock:
+async def get_simulation_synthesis(simulation_id: str):
+    async with _store_lock:
         items = _read_store()
     for item in items:
         if item.get("id") == simulation_id:

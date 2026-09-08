@@ -25,15 +25,24 @@ def get_primary_model() -> str:
     return OPENROUTER_MODEL or DEFAULT_MODEL
 
 
-def get_model_chain() -> list[str]:
-    chain: list[str] = [get_primary_model(), DEFAULT_MODEL]
-    chain.extend(_split_model_list(os.getenv("OPENROUTER_FALLBACK_MODELS")))
-    chain.extend(FALLBACK_MODELS)
+def get_fallback_model() -> str | None:
+    fallback_env = os.getenv("OPENROUTER_FALLBACK_MODELS", "").strip()
+    if fallback_env:
+        models = _split_model_list(fallback_env)
+        for m in models:
+            if m and m != get_primary_model():
+                return m
+    for m in FALLBACK_MODELS:
+        if m and m != get_primary_model():
+            return m
+    return None
 
-    deduped: list[str] = []
-    seen: set[str] = set()
-    for model in chain:
-        if model and model not in seen:
-            seen.add(model)
-            deduped.append(model)
-    return deduped
+
+def get_model_chain() -> list[str]:
+    primary = get_primary_model()
+    fallback = get_fallback_model()
+    chain = [primary]
+    if fallback and fallback != primary:
+        chain.append(fallback)
+    return chain
+

@@ -21,7 +21,11 @@ load_dotenv(Path(__file__).resolve().parents[4] / ".env")
 
 # RAG Setup
 from app.src.modules.legacy_rag.vector_loader import vector_store
-from tutor.subject_classifier import detect_subject
+try:
+    from app.src.modules.tutor.subject_classifier import detect_subject
+except ImportError:
+    from tutor.subject_classifier import detect_subject
+
 import asyncio
 
 # Curriculum Index Cache
@@ -64,101 +68,48 @@ async def _summarize_chat_history_async(turns_to_summarize: list[dict[str, str]]
         return ""
 
 
-async def analyze_and_update_profile_task(db_session_factory, user_id, query: str, response_text: str):
+def update_profile_from_interaction(db_session_factory, user_id, concepts: list[str] | None):
     """
-    Background task to analyze the latest chat turn and update the student profile in the database.
+    Directly updates student profile mastered topics from extracted concepts
+    without firing extra LLM requests.
     """
-    from app.src.repositories.student_repository import StudentRepository
-    from app.src.modules.legacy_rag.generator import generate_llm_text_async
+    if not user_id or not concepts:
+        return
     import uuid
-    
     if isinstance(user_id, str):
-        user_id = uuid.UUID(user_id)
-        
+        try:
+            user_id = uuid.UUID(user_id)
+        except Exception:
+            return
     db = db_session_factory()
     try:
+        from app.src.repositories.student_repository import StudentRepository
         profile = StudentRepository.get_or_create_profile(db, user_id)
-        
-        # Trim response_text to save prompt tokens
-        truncated_response = response_text
-        if len(response_text) > 800:
-            truncated_response = response_text[:800] + "..."
-            
-        prompt = f"""
-        Analyze the latest student query and tutor explanation.
-        Determine if we should update the student's profile status:
-        1. Has the student mastered a new physics concept? (Add to mastered list).
-        2. Has the student displayed or corrected a misconception?
-           - If they made a physics mistake, add the misconception summary (e.g. "confuses mass and weight").
-           - If the explanation corrected their misconception and they acknowledged/understood it, remove it from the list.
-        3. Should their skill level change (beginner, intermediate, advanced)?
-        
-        Current Profile:
-        - Level: {profile.skill_level}
-        - Mastered: {profile.mastered_topics}
-        - Misconceptions: {profile.misconceptions}
-        
-        Latest Interaction:
-        Student: {query}
-        Tutor: {truncated_response}
-        
-        Return ONLY a JSON block with:
-        {{
-            "skill_level": "new_level or null",
-            "add_mastered": ["topic1"] or [],
-            "add_misconception": "new_misconception" or null,
-            "remove_misconception": "misconception_to_remove" or null
-        }}
-        """
-        
-        res = await generate_llm_text_async(
-            prompt,
-            temperature=0.1,
-            max_output_tokens=300,
-            system_prompt="You are a student profile analysis assistant. Output JSON only.",
-            response_format={"type": "json_object"}
-        )
-        
-        if res and "Error" not in res:
-            import json
-            import re
-            cleaned = res.replace("```json", "").replace("```", "").strip()
-            json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
-            if json_match:
-                data = json.loads(json_match.group())
-                
-                skill_level = data.get("skill_level")
-                new_level = skill_level if skill_level and skill_level != "null" else None
-                
-                mastered_topics = list(profile.mastered_topics)
-                for topic in data.get("add_mastered", []):
-                    if topic not in mastered_topics:
-                        mastered_topics.append(topic)
-                        
-                misconceptions = list(profile.misconceptions)
-                add_m = data.get("add_misconception")
-                if add_m and add_m != "null" and add_m not in misconceptions:
-                    misconceptions.append(add_m)
-                    
-                rem_m = data.get("remove_misconception")
-                if rem_m and rem_m != "null" and rem_m in misconceptions:
-                    misconceptions.remove(rem_m)
-                    
-                StudentRepository.update_profile(
-                    db,
-                    user_id,
-                    skill_level=new_level,
-                    mastered_topics=mastered_topics,
-                    misconceptions=misconceptions
-                )
-                logger.info("[Profile Update] Successfully updated student profile for user: %s", user_id)
+        mastered_topics = list(profile.mastered_topics or [])
+        updated = False
+        for c in concepts:
+            if isinstance(c, str) and c.strip() and c.strip() not in mastered_topics:
+                mastered_topics.append(c.strip())
+                updated = True
+        if updated:
+            StudentRepository.update_profile(db, user_id, mastered_topics=mastered_topics)
+            logger.info("[Profile Update] Added mastered topics %s for user: %s", concepts[:3], user_id)
     except Exception as e:
         logger.error("[Profile Update] Failed to update profile: %s", e)
     finally:
         db.close()
 
 
-def _empty_tutor_payload(message: str):
+async def analyze_and_update_profile_task(db_session_factory, user_id, query: str, response_text: str, concepts: list[str] | None = None):
+    """
+    Non-LLM background task that updates the student profile safely.
+    """
+    if concepts is None:
+        concepts = [w.capitalize() for w in query.split() if len(w) > 4][:2]
+    update_profile_from_interaction(db_session_factory, user_id, concepts)
+
+
+def _empty_tutor_payload(message: str, error_type: str = "GENERATION_FAILED", status_code: int | None = None, provider: str = "unknown", tokens_used: int = 0) -> Dict[str, Any]:
     return {
         "title": "Generation Failed",
         "description": "",
@@ -173,43 +124,39 @@ def _empty_tutor_payload(message: str):
         "explanation": message,
         "ragContent": [],
         "simulation_guide": {"is_buildable": False},
+        "generation_status": "failed",
+        "generation_failed": True,
+        "error_type": error_type,
+        "status_code": status_code,
+        "provider": provider,
+        "tokens_used": tokens_used,
     }
+
+
+def is_conversational_query(query: str) -> bool:
+    q = query.strip().lower().rstrip("!?.")
+    greetings = {
+        "hi", "hello", "hey", "hola", "namaste", "good morning", "good afternoon",
+        "good evening", "how are you", "who are you", "what are you", "what can you do",
+        "help", "thanks", "thank you", "thx", "ok", "okay", "bye", "goodbye",
+        "start", "restart", "test"
+    }
+    if q in greetings:
+        return True
+    tokens = q.split()
+    if len(tokens) <= 3 and any(t in ["hi", "hello", "hey", "thanks", "thank"] for t in tokens):
+        return True
+    return False
 
 
 async def check_query_subject_relevance(query: str) -> str:
     """
-    Classifies a query using the LLM.
+    Classifies a query deterministically without firing extra LLM requests.
     Returns: "academic", "conversational", or "out_of_context"
     """
-    from app.src.modules.legacy_rag.generator import generate_llm_text_async
-    
-    system_prompt = (
-        "You are an academic query classifier. Analyze the user's query and classify it into one of these categories:\n"
-        "- \"academic\": Query is related to Science and Mathematics (specifically Physics, Chemistry, Biology, and Mathematics/Arithmetic). Examples: gravity, photosynthesis, algebra, chemical reactions, cell structure, derivatives, etc.\n"
-        "- \"conversational\": Query is a simple greeting, conversational greeting, appreciation, or question about your identity/capabilities (e.g., \"hello\", \"hi\", \"thank you\", \"who are you\").\n"
-        "- \"out_of_context\": Query is about any topic other than Science and Mathematics. This includes pop culture, history, civics, general knowledge, movies, sports, entertainment, gossip, cooking, lifestyle, personal opinions, or general trivia (e.g., \"pokemon\", \"who is president of us\", \"french revolution\", \"messi\", \"how to bake a cake\").\n\n"
-        "Return ONLY one of the following words followed by a period: \"academic.\", \"conversational.\", or \"out_of_context.\"."
-    )
-    
-    try:
-        response = await generate_llm_text_async(
-            final_prompt=f"Query: {query}",
-            temperature=0.0,
-            max_output_tokens=10,
-            system_prompt=system_prompt
-        )
-        if response:
-            cleaned = response.strip().lower()
-            if "academic" in cleaned:
-                return "academic"
-            if "conversational" in cleaned:
-                return "conversational"
-            if "out_of_context" in cleaned:
-                return "out_of_context"
-    except Exception as e:
-        logger.error("[Relevance Check] %s", e)
-        
-    return "academic"  # Fallback to academic if something fails, to avoid false refusals
+    if is_conversational_query(query):
+        return "conversational"
+    return "academic"
 
 
 def get_rag_components(subject: str = None):
@@ -368,15 +315,222 @@ def needs_simulation_generation(query: str) -> bool:
     return any(kw in q for kw in keywords)
 
 
+async def unified_tutor_generation_async(
+    query: str,
+    context: str,
+    history: list[dict[str, str]] | None = None,
+    fallback_mode: bool = False,
+    request_id: str | None = None,
+) -> Dict[str, Any]:
+    """
+    Generates the complete tutor analysis, explanation, simulation guide, and summary
+    in AT MOST ONE OpenRouter API call.
+    """
+    from app.src.modules.legacy_rag.generator import generate_llm_text_async
+
+    system_prompt = (
+        "You are an expert AI STEM and physics tutor for EduSim, an interactive learning platform.\n"
+        "Analyze the user's question and any textbook context provided. You must provide a comprehensive,\n"
+        "pedagogically rigorous response along with an interactive sandbox simulation design.\n\n"
+        "You MUST respond ONLY with a valid JSON object matching this exact schema:\n"
+        "{\n"
+        '  "title": "Clear descriptive title of the topic or law",\n'
+        '  "queryType": "concept" | "formula" | "mixed",\n'
+        '  "concepts": ["concise concept name 1", "concise concept name 2"],\n'
+        '  "formulas": [\n'
+        '    {"formula": "LaTeX formula string", "name": "Formula Name", "topic": "Topic", "meaning": "Explanation of variables"}\n'
+        '  ],\n'
+        '  "explanation": "Comprehensive pedagogical explanation formatted in clean Markdown with LaTeX math ($...$ for inline, $$...$$ for display). Include conceptual intuition, formula derivations/applications, real-world examples, and key takeaways.",\n'
+        '  "summary": "Concise 2-3 sentence educational revision summary capturing the core concept, main formula, and learning outcome.",\n'
+        '  "simulation_guide": {\n'
+        '    "is_buildable": true,\n'
+        '    "title": "Short title for the simulation layout (e.g. Free Fall Dynamics)",\n'
+        '    "steps": [\n'
+        '      {"step_number": 1, "title": "Concept & Goal", "description": "1-2 brief sentences explaining the concept and sandbox goal.", "icon": "🎯"},\n'
+        '      {"step_number": 2, "title": "Mass Setup", "description": "1-2 brief sentences instructing user to spawn Circle or Rectangle with coordinates and mass.", "icon": "🔴"},\n'
+        '      {"step_number": 3, "title": "Joints & Constraints", "description": "1-2 brief sentences on connecting masses with Rope, Spring, or Pivot if needed.", "icon": "➰"},\n'
+        '      {"step_number": 4, "title": "Parameter Tuning", "description": "1-2 brief sentences tuning gravity preset, stiffness, or initial impulse.", "icon": "⚙️"},\n'
+        '      {"step_number": 5, "title": "Run & Observe", "description": "1-2 brief sentences on hitting Play and observing velocities, trajectories, or energies.", "icon": "▶️"},\n'
+        '      {"step_number": 6, "title": "Physics Conclusion", "description": "1-2 brief sentences summarizing what the simulation demonstrates and proves.", "icon": "💡"}\n'
+        '    ],\n'
+        '    "tips": ["Tip 1", "Tip 2", "Tip 3"],\n'
+        '    "spawn_config": {\n'
+        '      "bodies": [\n'
+        '        {"id": "b1", "type": "circle", "x": 400, "y": 200, "radius": 25, "isStatic": false, "mass": 2.0, "restitution": 0.8, "fillColor": "0x38bdf8", "label": "Body 1"}\n'
+        '      ],\n'
+        '      "constraints": [],\n'
+        '      "gravityMode": "linear",\n'
+        '      "gravityPreset": "earth",\n'
+        '      "forces": []\n'
+        '    }\n'
+        '  }\n'
+        "}\n\n"
+        "Guidelines:\n"
+        "- If the query is completely unrelated to science, mathematics, or education (out of context), politely state in 'explanation' that you specialize in STEM education, set 'is_buildable': false, and leave formulas/concepts empty.\n"
+        "- Ensure 'explanation' is rich, detailed, and clear.\n"
+        "- Output ONLY valid parseable JSON. Do not prepend or append markdown text outside the JSON object."
+    )
+
+    user_prompt = f"Textbook Context:\n{context}\n\nStudent Query:\n{query}"
+
+    try:
+        try:
+            from services.ai_router import call_ai
+        except ImportError:
+            from app.src.services.ai_router import call_ai
+
+        ai_resp = await call_ai(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            model=os.getenv("OLLAMA_MODEL", "gemma3:4b"),
+            history=history,
+            temperature=0.2,
+            response_format={"type": "json_object"},
+            request_id=request_id,
+        )
+        response_text = ai_resp.get("text", "")
+        provider_used = ai_resp.get("provider", "unknown")
+        tokens_used = ai_resp.get("tokens_used", 0)
+
+        if not response_text:
+            return _empty_tutor_payload(
+                "Failed to generate tutor response.",
+                error_type="EMPTY_RESPONSE",
+                provider=provider_used,
+                tokens_used=tokens_used,
+            )
+
+        if response_text.startswith("Error:"):
+            is_402 = "HTTP 402" in response_text or "BILLING_CREDIT_LIMIT" in response_text or "payment required" in response_text.lower()
+            return _empty_tutor_payload(
+                response_text,
+                error_type="BILLING_CREDIT_LIMIT" if is_402 else "API_ERROR",
+                status_code=402 if is_402 else 500,
+                provider=provider_used,
+                tokens_used=tokens_used,
+            )
+
+        cleaned = response_text.replace("```json", "").replace("```", "").strip()
+        json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+        if json_match:
+            try:
+                parsed = json.loads(json_match.group())
+                raw_concepts = parsed.get("concepts", [])
+                if isinstance(raw_concepts, list):
+                    concepts = [c for c in raw_concepts if isinstance(c, str)]
+                else:
+                    concepts = []
+                related_concepts = _dedupe_related_topics(concepts, max_items=_MAX_RELATED_TOPICS)
+
+                formulas = parsed.get("formulas", [])
+                if not isinstance(formulas, list):
+                    formulas = []
+                first_formula = formulas[0].get("formula", "") if formulas and isinstance(formulas[0], dict) else (formulas[0] if formulas else "")
+
+                explanation = parsed.get("explanation", "")
+                if fallback_mode and explanation and "This topic is not available" not in explanation:
+                    explanation = (
+                        "This topic is not available in the provided textbook context.\n\n"
+                        "The following explanation is AI-generated and may not exactly match your textbook.\n\n"
+                        + explanation
+                    )
+
+                summary = parsed.get("summary", "")
+                if not summary:
+                    summary = explanation[:250].strip() + "..." if explanation else ""
+
+                sim_guide = parsed.get("simulation_guide", {})
+                if not isinstance(sim_guide, dict):
+                    sim_guide = {"is_buildable": False}
+
+                return {
+                    "title": parsed.get("title", "AI Tutor Response"),
+                    "description": query,
+                    "formula": first_formula,
+                    "related_concepts": related_concepts,
+                    "related_formulas": formulas,
+                    "ai_explanation": explanation,
+                    "sources": [],
+                    "queryType": parsed.get("queryType", "concept"),
+                    "concepts": related_concepts,
+                    "formulas": formulas,
+                    "explanation": explanation,
+                    "summary": summary,
+                    "simulation_guide": sim_guide,
+                    "generation_status": "success",
+                    "generation_failed": False,
+                    "error_type": None,
+                    "status_code": 200,
+                    "provider": provider_used,
+                    "tokens_used": tokens_used,
+                }
+            except json.JSONDecodeError:
+                pass
+
+        return {
+            "title": "AI Tutor Response",
+            "description": query,
+            "formula": "",
+            "related_concepts": [],
+            "related_formulas": [],
+            "ai_explanation": response_text,
+            "sources": [],
+            "queryType": "concept",
+            "concepts": [],
+            "formulas": [],
+            "explanation": response_text,
+            "summary": response_text[:250].strip() + "...",
+            "simulation_guide": {"is_buildable": False},
+            "generation_status": "success",
+            "generation_failed": False,
+            "error_type": None,
+            "status_code": 200,
+            "provider": provider_used,
+            "tokens_used": tokens_used,
+        }
+
+    except Exception as e:
+        logger.error("[Unified Tutor] Error: %s", e)
+        return _empty_tutor_payload(f"AI error: {str(e)}", error_type="EXCEPTION")
+
+
 async def analyze_tutor_query(
     query: str,
     history: list[dict[str, str]] | None = None,
     subject: str | None = None,
     chapter: str | None = None,
     topic: str | None = None,
-    student_profile: dict | None = None
+    student_profile: dict | None = None,
+    request_id: str | None = None,
 ) -> Dict[str, Any]:
     request_started = time.perf_counter()
+    
+    # 1. Quick greetings / conversational check (0 LLM requests)
+    if is_conversational_query(query):
+        greeting_text = (
+            "Hello! I am your EduSim AI Tutor, specialized in Science and Mathematics. "
+            "I can help explain physics concepts, derive formulas step-by-step, and automatically design "
+            "interactive sandbox simulations for you to test and explore! What topic or problem would you like to investigate?"
+        )
+        return {
+            "title": "EduSim AI Tutor",
+            "description": query,
+            "formula": "",
+            "related_concepts": ["Physics", "Mathematics", "Simulation"],
+            "related_formulas": [],
+            "ai_explanation": greeting_text,
+            "sources": [],
+            "queryType": "concept",
+            "concepts": ["Physics", "Simulation"],
+            "formulas": [],
+            "explanation": greeting_text,
+            "summary": "AI Tutor greeting and session initialization.",
+            "ragContent": [],
+            "simulation_guide": {"is_buildable": False},
+            "generation_status": "success",
+            "generation_failed": False,
+            "status_code": 200,
+        }
     
     dependent_pronouns = re.compile(
         r"\b(it|its|this|that|these|those|they|them|their|theirs)\b", 
@@ -407,40 +561,19 @@ async def analyze_tutor_query(
             "explanation": clarification_msg,
             "ragContent": [],
             "simulation_guide": {"is_buildable": False},
+            "generation_status": "success",
+            "generation_failed": False,
+            "status_code": 200,
         }
 
-    # Subject relevance guard rail check
     is_follow_up = history and any(msg["role"] == "user" for msg in history)
-    is_change = is_topic_change(query, history) if is_follow_up else True
-    
-    if is_change:
-        relevance = await check_query_subject_relevance(query)
-        if relevance == "out_of_context":
-            refusal_msg = (
-                "I am your AI Tutor, designed to help you with school subjects like Physics, Chemistry, Biology, and Mathematics. "
-                "I cannot assist with out-of-context queries. Please feel free to ask any academic questions!"
-            )
-            return {
-                "title": "Out of Context",
-                "description": query,
-                "formula": "",
-                "related_concepts": [],
-                "related_formulas": [],
-                "ai_explanation": refusal_msg,
-                "sources": [],
-                "queryType": "concept",
-                "concepts": [],
-                "formulas": [],
-                "explanation": refusal_msg,
-                "ragContent": [],
-            }
 
-    # Dynamic History Summarization
+    # Lightweight history summarization without extra LLM call
     history_summary = ""
     if history and len(history) > 16:
-        turns_to_summarize = history[:-6]
+        user_turns = [msg.get("content", "")[:60] for msg in history[:-6] if isinstance(msg, dict) and msg.get("role") == "user"]
+        history_summary = "Earlier discussion: " + ", ".join(user_turns[-3:])
         history = history[-6:]
-        history_summary = await _summarize_chat_history_async(turns_to_summarize)
         
     # Format Student Profile context if provided
     profile_context = ""
@@ -461,7 +594,6 @@ async def analyze_tutor_query(
             re.IGNORECASE
         )
         if pronoun_pattern.search(query):
-            # Scan history in reverse for the most recent user query that does NOT contain dependent pronouns
             context_query = ""
             for msg in reversed(history):
                 if isinstance(msg, dict) and msg.get("role") == "user":
@@ -470,7 +602,6 @@ async def analyze_tutor_query(
                         context_query = content
                         break
             
-            # If we didn't find one without pronouns, fallback to the first user message in history
             if not context_query:
                 for msg in history:
                     if isinstance(msg, dict) and msg.get("role") == "user":
@@ -495,7 +626,7 @@ async def analyze_tutor_query(
             if hints_str.lower() not in query.lower():
                 search_query = f"{hints_str} {query}"
             
-    # 1. Subject Routing & RAG Retrieval
+    # 2. Subject Routing & RAG Retrieval
     target_subject = subject if subject else detect_subject(search_query)
     retriever = get_rag_components(target_subject) if not is_follow_up else None
     
@@ -511,7 +642,7 @@ async def analyze_tutor_query(
     fallback_mode = not bool(valid_docs)
     
     if not fallback_mode:
-        for doc in valid_docs[:3]: # Optimized to 3
+        for doc in valid_docs[:3]:
             source = os.path.basename(doc.get("source", "Textbook"))
             content = re.sub(r'\s+', ' ', doc.get("text", "")).strip()
             rag_content.append({"title": source, "content": content})
@@ -523,109 +654,162 @@ async def analyze_tutor_query(
     if not context.strip():
         context = "No textbook context available."
 
-    # Build full context by prepending memory and profile state
     full_context = context
     if history_summary:
         full_context = f"[CONVERSATION MEMORY]\nPreviously: {history_summary}\n\n{full_context}"
     if profile_context:
         full_context = f"{profile_context}{full_context}"
 
-    # 2. Async Parallel Execution
+    # 3. Single Unified LLM Execution (At most ONE OpenRouter request)
     llm_start = time.perf_counter()
-    
-    is_follow_up = history and any(msg["role"] == "user" for msg in history)
-    run_simulation_gen = not is_follow_up or needs_simulation_generation(query)
-    
-    if run_simulation_gen:
-        structured_task = asyncio.create_task(analyze_with_llm_async(query, full_context, history=history))
-        explanation_task = asyncio.create_task(generate_explanation_async(query, full_context, fallback_mode, history=history))
-        structured, rag_explanation = await asyncio.gather(structured_task, explanation_task)
-    else:
-        # Skip simulation analyzer to save massive tokens
-        structured = {
-            "title": "AI Tutor Response",
-            "queryType": "concept",
-            "concepts": [],
-            "formulas": [],
-            "simulation_guide": {"is_buildable": False}
-        }
-        rag_explanation = await generate_explanation_async(query, full_context, fallback_mode, history=history)
-    
+    unified = await unified_tutor_generation_async(
+        query=query,
+        context=full_context,
+        history=history,
+        fallback_mode=fallback_mode,
+        request_id=request_id
+    )
     llm_time = time.perf_counter() - llm_start
     logger.info("[LLM] %.2fs", llm_time)
     
     total_time = time.perf_counter() - request_started
     logger.info("[TOTAL] %.2fs", total_time)
     
-    formulas = structured.get("formulas", [])
-    related_concepts = _dedupe_related_topics(structured.get("related_concepts", []), max_items=_MAX_RELATED_TOPICS)
-    first_formula = formulas[0].get("formula", "") if formulas and isinstance(formulas[0], dict) else (formulas[0] if formulas else "")
+    formulas = unified.get("formulas", [])
+    related_concepts = unified.get("related_concepts", [])
+    first_formula = unified.get("formula", "")
+    explanation_text = unified.get("explanation", "")
 
     return {
-        "title": structured.get("title", "AI Tutor Response"),
+        "title": unified.get("title", "AI Tutor Response"),
         "description": query,
         "formula": first_formula,
         "related_concepts": related_concepts,
         "related_formulas": formulas,
-        "ai_explanation": rag_explanation,
+        "ai_explanation": explanation_text,
         "sources": rag_content,
-        "queryType": structured.get("queryType", "concept"),
+        "queryType": unified.get("queryType", "concept"),
         "concepts": related_concepts,
         "formulas": formulas,
-        "explanation": rag_explanation,
+        "explanation": explanation_text,
+        "summary": unified.get("summary", ""),
         "ragContent": rag_content,
+        "simulation_guide": unified.get("simulation_guide", {"is_buildable": False}),
+        "generation_status": unified.get("generation_status", "success"),
+        "generation_failed": unified.get("generation_failed", False),
+        "error_type": unified.get("error_type"),
+        "status_code": unified.get("status_code", 200),
+        "provider": unified.get("provider", "unknown"),
+        "tokens_used": unified.get("tokens_used", 0),
     }
 
 
-async def explain_simulation_query(query: str, history: list[dict[str, str]] | None = None) -> Dict[str, Any]:
+async def explain_simulation_query(
+    query: str,
+    history: list[dict[str, str]] | None = None,
+    request_id: str | None = None,
+) -> Dict[str, Any]:
+    """
+    Direct, single-LLM explanation for physics sandbox simulation events.
+    """
     request_started = time.perf_counter()
-    
-    if history:
-        history = history[-16:]
-        
-    # Direct prompt to LLM (No RAG!)
-    from app.src.modules.legacy_rag.generator import generate_llm_text_async, TUTOR_SYSTEM_PROMPT
-    
-    context = "Live interactive physics sandbox simulation."
-    
-    from app.src.modules.legacy_rag.generator import get_tutor_prompt
-    prompt = get_tutor_prompt(context, query, fallback_mode=True)
-    
-    # Generate structured explanation
-    llm_start = time.perf_counter()
-    
-    structured_task = asyncio.create_task(analyze_with_llm_async(query, context, history=history))
-    explanation_task = asyncio.create_task(generate_llm_text_async(prompt, temperature=0.3, system_prompt=TUTOR_SYSTEM_PROMPT, history=history))
-    
-    structured, rag_explanation = await asyncio.gather(structured_task, explanation_task)
-    
-    if not rag_explanation:
-        rag_explanation = "Failed to generate simulation explanation."
-    
-    llm_time = time.perf_counter() - llm_start
-    logger.info("[Direct LLM Simulation] %.2fs", llm_time)
-    
-    total_time = time.perf_counter() - request_started
-    logger.info("[TOTAL Direct Sim] %.2fs", total_time)
-    
-    formulas = structured.get("formulas", [])
-    related_concepts = _dedupe_related_topics(structured.get("related_concepts", []), max_items=_MAX_RELATED_TOPICS)
-    first_formula = formulas[0].get("formula", "") if formulas and isinstance(formulas[0], dict) else (formulas[0] if formulas else "")
+    from app.src.modules.legacy_rag.generator import generate_llm_text_async
 
-    return {
-        "title": structured.get("title", "Simulation Insights"),
-        "description": query,
-        "formula": first_formula,
-        "related_concepts": related_concepts,
-        "related_formulas": formulas,
-        "ai_explanation": rag_explanation,
-        "sources": [],
-        "queryType": structured.get("queryType", "concept"),
-        "concepts": related_concepts,
-        "formulas": formulas,
-        "explanation": rag_explanation,
-        "ragContent": [],
-    }
+    prompt = f"""
+    You are an expert real-time physics simulation explainer for EduSim.
+    A physics event just occurred in the interactive sandbox canvas:
+    "{query}"
+    
+    Provide a concise, scientifically accurate explanation of what physically happened.
+    Respond ONLY with a valid JSON object matching:
+    {{
+        "title": "Short event title (e.g. Inelastic Collision)",
+        "explanation": "Clear, informative 1-2 paragraph explanation of the physics dynamics, momentum/energy transitions, and underlying principles.",
+        "formula": "Primary relevant formula in LaTeX (e.g. p = m * v or F = -k * x)",
+        "concepts": ["Concept 1", "Concept 2"]
+    }}
+    """
+    try:
+        raw = await generate_llm_text_async(
+            final_prompt=prompt,
+            temperature=0.2,
+            max_output_tokens=600,
+            system_prompt="You are a real-time physics simulation explainer. Respond only in valid JSON.",
+            response_format={"type": "json_object"},
+            request_id=request_id,
+            history=history[-6:] if history else None,
+        )
+
+        if not raw or raw.startswith("Error:"):
+            msg = raw or "Failed to generate simulation explanation."
+            return {
+                "title": "Simulation Event",
+                "description": query,
+                "formula": "",
+                "related_concepts": [],
+                "related_formulas": [],
+                "ai_explanation": msg,
+                "sources": [],
+                "queryType": "concept",
+                "concepts": [],
+                "formulas": [],
+                "explanation": msg,
+                "ragContent": [],
+            }
+
+        cleaned = raw.replace("```json", "").replace("```", "").strip()
+        json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+        if json_match:
+            parsed = json.loads(json_match.group())
+            exp = parsed.get("explanation", "")
+            form = parsed.get("formula", "")
+            conc = parsed.get("concepts", [])
+            title = parsed.get("title", "Simulation Event")
+            return {
+                "title": title,
+                "description": query,
+                "formula": form,
+                "related_concepts": conc,
+                "related_formulas": [{"formula": form, "name": title, "topic": "Simulation", "meaning": ""}] if form else [],
+                "ai_explanation": exp,
+                "sources": [],
+                "queryType": "concept",
+                "concepts": conc,
+                "formulas": [{"formula": form, "name": title, "topic": "Simulation", "meaning": ""}] if form else [],
+                "explanation": exp,
+                "ragContent": [],
+            }
+
+        return {
+            "title": "Simulation Event",
+            "description": query,
+            "formula": "",
+            "related_concepts": [],
+            "related_formulas": [],
+            "ai_explanation": raw,
+            "sources": [],
+            "queryType": "concept",
+            "concepts": [],
+            "formulas": [],
+            "explanation": raw,
+            "ragContent": [],
+        }
+    except Exception as e:
+        logger.error("[Explain Sim] Error: %s", e)
+        return {
+            "title": "Simulation Event",
+            "description": query,
+            "formula": "",
+            "related_concepts": [],
+            "related_formulas": [],
+            "ai_explanation": f"AI error: {str(e)}",
+            "sources": [],
+            "queryType": "concept",
+            "concepts": [],
+            "formulas": [],
+            "explanation": f"AI error: {str(e)}",
+            "ragContent": [],
+        }
 
 
 async def analyze_tutor_query_stream(
@@ -710,12 +894,12 @@ async def analyze_tutor_query_stream(
             yield "data: [DONE]\n\n"
             return
 
-    # Dynamic History Summarization
+    # Dynamic History Summarization (zero extra LLM calls)
     history_summary = ""
     if history and len(history) > 16:
-        turns_to_summarize = history[:-6]
+        user_turns = [msg.get("content", "")[:60] for msg in history[:-6] if isinstance(msg, dict) and msg.get("role") == "user"]
+        history_summary = "Earlier discussion: " + ", ".join(user_turns[-3:])
         history = history[-6:]
-        history_summary = await _summarize_chat_history_async(turns_to_summarize)
         
     # Format Student Profile context if provided
     profile_context = ""

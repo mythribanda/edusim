@@ -20,7 +20,7 @@ class AgentGenerateRequest(BaseModel):
 
 async def synthesis_generate_controller(request: AgentGenerateRequest):
     try:
-        data = generate_simulation_synthesis(prompt=request.prompt, topic=request.topic)
+        data = await generate_simulation_synthesis(prompt=request.prompt, topic=request.topic)
         return {
             "success": True,
             **data,
@@ -33,7 +33,7 @@ async def synthesis_generate_controller(request: AgentGenerateRequest):
 
 async def synthesis_list_controller(limit: int = 30):
     try:
-        data = list_simulation_synthesis(limit=limit)
+        data = await list_simulation_synthesis(limit=limit)
         return {
             "success": True,
             "items": data,
@@ -44,7 +44,7 @@ async def synthesis_list_controller(limit: int = 30):
 
 async def synthesis_get_controller(simulation_id: str):
     try:
-        item = get_simulation_synthesis(simulation_id=simulation_id)
+        item = await get_simulation_synthesis(simulation_id=simulation_id)
         if item is None:
             raise HTTPException(status_code=404, detail="Simulation not found")
         return {

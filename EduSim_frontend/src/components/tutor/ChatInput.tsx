@@ -11,6 +11,14 @@ export function ChatInput({ onSend, disabled, focus = false }: ChatInputProps) {
   const [text, setText] = useState("");
   const [isDesktop, setIsDesktop] = useState(false);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
+  const isSubmittingRef = useRef(false);
+
+  // Release the submission lock whenever the disabled prop switches back to false
+  useEffect(() => {
+    if (!disabled) {
+      isSubmittingRef.current = false;
+    }
+  }, [disabled]);
 
   useEffect(() => {
     const updateDesktop = () => setIsDesktop(window.innerWidth >= 1024);
@@ -32,13 +40,20 @@ export function ChatInput({ onSend, disabled, focus = false }: ChatInputProps) {
     }
   }, [focus]);
 
+  const handleSubmit = () => {
+    if (!text.trim() || disabled || isSubmittingRef.current) {
+      return;
+    }
+    isSubmittingRef.current = true;
+    const content = text.trim();
+    setText("");
+    onSend(content);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (text.trim() && !disabled) {
-        onSend(text.trim());
-        setText("");
-      }
+      handleSubmit();
     }
   };
 
@@ -60,8 +75,9 @@ export function ChatInput({ onSend, disabled, focus = false }: ChatInputProps) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask the tutor..."
-              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-foreground placeholder:text-muted-foreground/60 text-sm sm:text-base focus:ring-0 resize-none min-h-[24px] max-h-[120px] py-1.5 custom-scrollbar font-medium"
+              disabled={disabled}
+              placeholder={disabled ? "Tutor is thinking..." : "Ask the tutor..."}
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-foreground placeholder:text-muted-foreground/60 text-sm sm:text-base focus:ring-0 resize-none min-h-[24px] max-h-[120px] py-1.5 custom-scrollbar font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               rows={1}
             />
 
@@ -77,15 +93,11 @@ export function ChatInput({ onSend, disabled, focus = false }: ChatInputProps) {
               
               {/* Send Button */}
               <button
+                type="button"
                 aria-label="Send message"
-                onClick={() => {
-                  if (text.trim() && !disabled) {
-                    onSend(text.trim());
-                    setText("");
-                  }
-                }}
-                disabled={disabled || !text.trim()}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_4px_12px_rgba(112,181,255,0.3)] transition-all duration-200 hover:scale-105 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none hover:bg-primary/95 cursor-pointer"
+                onClick={handleSubmit}
+                disabled={disabled || !text.trim() || isSubmittingRef.current}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_4px_12px_rgba(112,181,255,0.3)] transition-all duration-200 hover:scale-105 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none hover:bg-primary/95 cursor-pointer disabled:pointer-events-none"
               >
                 <Send className="h-4.5 w-4.5 ml-0.5" />
               </button>

@@ -20,8 +20,62 @@ It implements a centralized reactive dependency graph featuring:
 
 import re
 import math
+import ast
+import operator as op
 from typing import Any, Dict, List, Optional, Set
 from pydantic import BaseModel, Field
+
+_SAFE_MATH_OPERATORS = {
+    ast.Add: op.add,
+    ast.Sub: op.sub,
+    ast.Mult: op.mul,
+    ast.Div: op.truediv,
+    ast.FloorDiv: op.floordiv,
+    ast.Pow: op.pow,
+    ast.Mod: op.mod,
+    ast.USub: op.neg,
+    ast.UAdd: op.pos,
+}
+
+def _eval_ast_node(node: ast.AST, safe_dict: Dict[str, Any]) -> float:
+    """Recursively evaluates AST mathematical expression nodes with zero arbitrary code execution."""
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, (int, float)):
+            return float(node.value)
+        raise ValueError(f"Unsupported constant type: {type(node.value)}")
+    elif isinstance(node, ast.Name):
+        if node.id in safe_dict:
+            val = safe_dict[node.id]
+            return float(val) if isinstance(val, (int, float)) else val
+        raise ValueError(f"Unknown variable: {node.id}")
+    elif isinstance(node, ast.BinOp):
+        left = _eval_ast_node(node.left, safe_dict)
+        right = _eval_ast_node(node.right, safe_dict)
+        op_type = type(node.op)
+        if op_type in _SAFE_MATH_OPERATORS:
+            return float(_SAFE_MATH_OPERATORS[op_type](left, right))
+        raise ValueError(f"Unsupported operator: {op_type}")
+    elif isinstance(node, ast.UnaryOp):
+        operand = _eval_ast_node(node.operand, safe_dict)
+        op_type = type(node.op)
+        if op_type in _SAFE_MATH_OPERATORS:
+            return float(_SAFE_MATH_OPERATORS[op_type](operand))
+        raise ValueError(f"Unsupported unary operator: {op_type}")
+    elif isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id in safe_dict:
+            fn = safe_dict[node.func.id]
+            args = [_eval_ast_node(arg, safe_dict) for arg in node.args]
+            return float(fn(*args))
+        raise ValueError(f"Unsupported function call in expression")
+    else:
+        raise ValueError(f"Unsupported AST node: {type(node)}")
+
+def safe_eval_math_expression(expr_str: str, safe_dict: Dict[str, Any]) -> float:
+    """Parses and computes mathematical formulas using AST parsing without calling eval()."""
+    # Replace '^' with '**' for exponential powers if present
+    normalized_expr = expr_str.replace("^", "**")
+    parsed = ast.parse(normalized_expr, mode="eval")
+    return float(_eval_ast_node(parsed.body, safe_dict))
 
 from app.src.modules.sandbox.schemas.observable_schema import (
     SandboxObservable,
@@ -252,8 +306,8 @@ class ObservableStateManager:
         }
 
         try:
-            # Safe evaluation
-            return float(eval(eval_str, {"__builtins__": None}, safe_dict))
+            # Safe evaluation via AST parsing
+            return safe_eval_math_expression(eval_str, safe_dict)
         except Exception as e:
             # Fallback direct calculations for standard educational shapes
             if "0.5" in formula and "m" in symbol_map and "v" in symbol_map:

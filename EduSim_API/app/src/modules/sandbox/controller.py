@@ -7,8 +7,9 @@ Exposes REST boundaries to manage simulation generation, state synchronization,
 dynamic parameter manipulation, and checkpoint/snapshot workflows.
 
 Maintains structural separation by delegating all execution logic to the service layer.
+Enforces strict IDOR protection: every query that takes a session_id / simulation_id
+verifies that the session belongs to the requesting user.
 """
-
 
 from __future__ import annotations
 from typing import Any, Dict, Optional
@@ -17,11 +18,63 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.src.config.database import get_db
-from app.src.services.persistence_service import record_activity, record_sandbox_event, resolve_user_from_authorization, save_sandbox_state
+from app.src.models.user import User
+from app.src.models.persistence import SimulationHistory
+from app.src.services.persistence_service import (
+    record_activity,
+    record_sandbox_event,
+    resolve_user_from_authorization,
+    save_sandbox_state,
+)
 from app.src.modules.sandbox import service
 
 # Initialize APIRouter
 sandbox_router = APIRouter(prefix="/sandbox", tags=["Sandbox"])
+
+
+# ============================================================================
+# IDOR Verification Helper
+# ============================================================================
+
+async def verify_sandbox_session_owner(
+    simulation_id: str,
+    user: Optional[User],
+    db: Session
+) -> None:
+    """
+    IDOR Prevention: Validates that the requested sandbox session belongs
+    to the authenticated user making the request.
+    """
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to access sandbox session."
+        )
+
+    # Educators and Admins can supervise all sessions
+    role = getattr(user, "role", None)
+    if role in ("admin", "educator", "teacher", "superadmin"):
+        return
+
+    # 1. Check in-memory session owner
+    owner_id = await service.get_session_owner(simulation_id)
+    if owner_id and str(owner_id) != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: You do not own this sandbox simulation session."
+        )
+
+    # 2. Check persistent SimulationHistory records in database
+    sim_record = (
+        db.query(SimulationHistory)
+        .filter(SimulationHistory.simulation_id == str(simulation_id))
+        .first()
+    )
+    if sim_record and str(sim_record.user_id) != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: You do not own this sandbox simulation session."
+        )
 
 
 # ============================================================================
@@ -75,8 +128,13 @@ async def generate_sandbox_simulation(
     objects are normalized, and an active RuntimeStore session is registered.
     """
     try:
-        data = service.generate_simulation(prompt=request.prompt, topic=request.topic)
         user = resolve_user_from_authorization(authorization, db)
+        user_id = str(user.id) if user else None
+        data = await service.generate_simulation(
+            prompt=request.prompt,
+            topic=request.topic,
+            user_id=user_id,
+        )
         if user:
             save_sandbox_state(
                 db,
@@ -131,10 +189,12 @@ async def load_sandbox_simulation(
 ):
     """
     Returns the initial state configuration or current coordinates of the active ID.
+    Enforces IDOR verification.
     """
     try:
-        data = service.load_simulation(simulation_id=request.simulation_id)
         user = resolve_user_from_authorization(authorization, db)
+        await verify_sandbox_session_owner(request.simulation_id, user, db)
+        data = await service.load_simulation(simulation_id=request.simulation_id)
         if user:
             record_activity(
                 db,
@@ -150,6 +210,8 @@ async def load_sandbox_simulation(
             "success": True,
             **data
         }
+    except HTTPException:
+        raise
     except ValueError as val_err:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -173,10 +235,12 @@ async def reset_sandbox_simulation(
 ):
     """
     Restores positions, velocities, clocks, and observables back to initial values.
+    Enforces IDOR verification.
     """
     try:
-        data = service.reset_simulation(simulation_id=request.simulation_id)
         user = resolve_user_from_authorization(authorization, db)
+        await verify_sandbox_session_owner(request.simulation_id, user, db)
+        data = await service.reset_simulation(simulation_id=request.simulation_id)
         if user:
             record_activity(
                 db,
@@ -192,6 +256,8 @@ async def reset_sandbox_simulation(
             "success": True,
             **data
         }
+    except HTTPException:
+        raise
     except ValueError as val_err:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -215,14 +281,16 @@ async def update_sandbox_control(
 ):
     """
     Applies widget value mutations and triggers reactive observable re-evaluation.
+    Enforces IDOR verification.
     """
     try:
-        data = service.update_control(
+        user = resolve_user_from_authorization(authorization, db)
+        await verify_sandbox_session_owner(request.simulation_id, user, db)
+        data = await service.update_control(
             simulation_id=request.simulation_id,
             control_id=request.control_id,
             value=request.value
         )
-        user = resolve_user_from_authorization(authorization, db)
         if user:
             record_sandbox_event(
                 db,
@@ -238,6 +306,8 @@ async def update_sandbox_control(
             "success": True,
             **data
         }
+    except HTTPException:
+        raise
     except ValueError as val_err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -261,10 +331,12 @@ async def get_sandbox_runtime(
 ):
     """
     Fetches real-time ticks, speed clocks, pointer positions, and canvas bounds.
+    Enforces IDOR verification.
     """
     try:
-        data = service.get_runtime_payload(simulation_id=simulation_id)
         user = resolve_user_from_authorization(authorization, db)
+        await verify_sandbox_session_owner(simulation_id, user, db)
+        data = await service.get_runtime_payload(simulation_id=simulation_id)
         if user:
             record_activity(
                 db,
@@ -280,6 +352,8 @@ async def get_sandbox_runtime(
             "success": True,
             **data
         }
+    except HTTPException:
+        raise
     except ValueError as val_err:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -303,10 +377,12 @@ async def get_sandbox_snapshot(
 ):
     """
     Captures complete positions, coordinates, forces, and observables for undo/replays.
+    Enforces IDOR verification.
     """
     try:
-        data = service.get_snapshot(simulation_id=simulation_id)
         user = resolve_user_from_authorization(authorization, db)
+        await verify_sandbox_session_owner(simulation_id, user, db)
+        data = await service.get_snapshot(simulation_id=simulation_id)
         if user:
             record_activity(
                 db,
@@ -322,6 +398,8 @@ async def get_sandbox_snapshot(
             "success": True,
             **data
         }
+    except HTTPException:
+        raise
     except ValueError as val_err:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -346,13 +424,15 @@ async def restore_sandbox_snapshot(
 ):
     """
     Restores velocities, coordinates, and calculations from deep snapshot dictionary.
+    Enforces IDOR verification.
     """
     try:
-        data = service.restore_snapshot(
+        user = resolve_user_from_authorization(authorization, db)
+        await verify_sandbox_session_owner(simulation_id, user, db)
+        data = await service.restore_snapshot(
             simulation_id=simulation_id,
             snapshot_data=request.snapshot
         )
-        user = resolve_user_from_authorization(authorization, db)
         if user:
             record_activity(
                 db,
@@ -369,6 +449,8 @@ async def restore_sandbox_snapshot(
             "success": True,
             **data
         }
+    except HTTPException:
+        raise
     except ValueError as val_err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

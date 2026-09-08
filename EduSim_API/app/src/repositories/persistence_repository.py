@@ -1,5 +1,5 @@
 
-from __future__ import annotations
+import uuid
 from typing import Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select
@@ -21,35 +21,52 @@ class PersistenceRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    @staticmethod
+    def _to_uuid(val: Any) -> Optional[uuid.UUID]:
+        if val is None:
+            return None
+        if isinstance(val, uuid.UUID):
+            return val
+        try:
+            return uuid.UUID(str(val))
+        except (ValueError, TypeError, AttributeError):
+            return None
+
     # Helper to get/set setting values
     def _get_setting(self, user_id: Any, key: str, default: Any = None) -> Any:
+        uid = self._to_uuid(user_id)
+        if not uid:
+            return default
         setting = (
             self.db.query(UserSetting)
-            .filter(UserSetting.user_id == user_id, UserSetting.setting_key == key)
+            .filter(UserSetting.user_id == uid, UserSetting.setting_key == key)
             .first()
         )
         return setting.setting_value if setting else default
 
     def _set_setting(self, user_id: Any, key: str, value: Any) -> None:
+        uid = self._to_uuid(user_id)
+        if not uid:
+            return
         # Check session local objects (both pending and persistent)
         for obj in self.db.new:
-            if isinstance(obj, UserSetting) and obj.user_id == user_id and obj.setting_key == key:
+            if isinstance(obj, UserSetting) and obj.user_id == uid and obj.setting_key == key:
                 obj.setting_value = value
                 return
         for obj in self.db.identity_map.values():
-            if isinstance(obj, UserSetting) and obj.user_id == user_id and obj.setting_key == key:
+            if isinstance(obj, UserSetting) and obj.user_id == uid and obj.setting_key == key:
                 obj.setting_value = value
                 return
 
         setting = (
             self.db.query(UserSetting)
-            .filter(UserSetting.user_id == user_id, UserSetting.setting_key == key)
+            .filter(UserSetting.user_id == uid, UserSetting.setting_key == key)
             .first()
         )
         if setting:
             setting.setting_value = value
         else:
-            setting = UserSetting(user_id=user_id, setting_key=key, setting_value=value)
+            setting = UserSetting(user_id=uid, setting_key=key, setting_value=value)
             self.db.add(setting)
 
     # --- User State ---
@@ -75,10 +92,13 @@ class PersistenceRepository:
 
     # --- Tutor Sessions & Messages ---
     def list_tutor_sessions(self, user_id):
+        uid = self._to_uuid(user_id)
+        if not uid:
+            return []
         # Retrieve all tutor messages for the user ordered by creation time (oldest first)
         messages = (
             self.db.query(ChatHistory)
-            .filter(ChatHistory.user_id == user_id, ChatHistory.session_type == "tutor")
+            .filter(ChatHistory.user_id == uid, ChatHistory.session_type == "tutor")
             .order_by(ChatHistory.created_at.asc())
             .all()
         )
@@ -119,9 +139,12 @@ class PersistenceRepository:
         return sessions_list
 
     def get_tutor_messages(self, conversation_id):
+        cid = self._to_uuid(conversation_id)
+        if not cid:
+            return []
         messages = (
             self.db.query(ChatHistory)
-            .filter(ChatHistory.session_id == conversation_id)
+            .filter(ChatHistory.session_id == cid)
             .order_by(ChatHistory.created_at.asc())
             .all()
         )
@@ -146,10 +169,13 @@ class PersistenceRepository:
         return self._get_setting(user_id, "formula_sessions", [])
 
     def list_formula_calculations(self, session_id):
+        sid = self._to_uuid(session_id)
+        if not sid:
+            return []
         # Retrieve all calculations for a session from formula_history table
         calcs = (
             self.db.query(FormulaHistory)
-            .filter(FormulaHistory.session_id == session_id)
+            .filter(FormulaHistory.session_id == sid)
             .order_by(FormulaHistory.created_at.desc())
             .all()
         )
@@ -180,10 +206,13 @@ class PersistenceRepository:
 
     # --- Sandbox/Simulation Sessions & Events ---
     def list_sandbox_sessions(self, user_id):
+        uid = self._to_uuid(user_id)
+        if not uid:
+            return []
         # Query simulation_history table
         sims = (
             self.db.query(SimulationHistory)
-            .filter(SimulationHistory.user_id == user_id, SimulationHistory.deleted_at.is_(None))
+            .filter(SimulationHistory.user_id == uid, SimulationHistory.deleted_at.is_(None))
             .order_by(SimulationHistory.updated_at.desc())
             .all()
         )
@@ -222,11 +251,17 @@ class PersistenceRepository:
 
     # --- Core Settings, Profiles, Sessions ---
     def list_user_settings(self, user_id):
-        return self.db.query(UserSetting).filter(UserSetting.user_id == user_id).all()
+        uid = self._to_uuid(user_id)
+        if not uid:
+            return []
+        return self.db.query(UserSetting).filter(UserSetting.user_id == uid).all()
 
     def list_user_roles(self, user_id):
+        uid = self._to_uuid(user_id)
+        if not uid:
+            return []
         # Since roles table is removed, query the user's role field directly
-        user = self.db.query(User).filter(User.id == user_id).first()
+        user = self.db.query(User).filter(User.id == uid).first()
         if user:
             return [{"role": {"name": user.role, "description": f"Role {user.role}"}, "is_primary": True}]
         return []
@@ -236,11 +271,17 @@ class PersistenceRepository:
         return [profile] if profile else []
 
     def list_sessions(self, user_id):
-        return self.db.query(UserSession).filter(UserSession.user_id == user_id).all()
+        uid = self._to_uuid(user_id)
+        if not uid:
+            return []
+        return self.db.query(UserSession).filter(UserSession.user_id == uid).all()
 
     def list_refresh_tokens(self, user_id):
+        uid = self._to_uuid(user_id)
+        if not uid:
+            return []
         # We can store refresh tokens in user_settings if needed, or query user_sessions
-        sessions = self.db.query(UserSession).filter(UserSession.user_id == user_id).all()
+        sessions = self.db.query(UserSession).filter(UserSession.user_id == uid).all()
         return [
             {
                 "id": str(s.id),

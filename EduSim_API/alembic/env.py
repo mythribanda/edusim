@@ -10,6 +10,9 @@ from sqlalchemy import engine_from_config, pool
 from app.src.config.database import Base, DATABASE_URL
 from app.src.models import user as user_models  # noqa: F401
 from app.src.models import persistence as persistence_models  # noqa: F401
+from models import Class, TeacherClassSubject, StudentEnrollment, StudentTopicMastery  # noqa: F401
+
+
 
 config = context.config
 

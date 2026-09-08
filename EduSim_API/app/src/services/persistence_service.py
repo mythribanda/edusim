@@ -61,6 +61,12 @@ def resolve_user_from_authorization(authorization: Optional[str], db: Session) -
     if not user_id:
         return None
 
+    if isinstance(user_id, str):
+        try:
+            user_id = uuid.UUID(user_id)
+        except (ValueError, TypeError, AttributeError):
+            return None
+
     return db.query(User).filter(User.id == user_id).first()
 
 

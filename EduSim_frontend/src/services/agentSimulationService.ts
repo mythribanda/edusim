@@ -321,7 +321,7 @@ class AgentSimulationService {
   /** Ping backend health check */
   async ping(): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/`);
+      const response = await fetch(joinUrl(this.apiBaseUrl, "/"));
       return await response.json();
     } catch (e) {
       return { success: false, message: "Backend unreachable" };

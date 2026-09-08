@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.src.config.database import get_db
 from app.src.models.persistence import CurriculumClass, Subject, Chapter, Topic
+from app.src.models.user import User
+from middleware.rbac import require_role
 
 router = APIRouter(prefix="/curriculum", tags=["Curriculum"])
 
@@ -40,6 +42,29 @@ def get_topics(chapter_id: uuid.UUID, db: Session = Depends(get_db)):
         if not chap:
             raise HTTPException(status_code=404, detail="Chapter not found")
     return topics
+
+@router.get("/all-topics")
+def get_all_topics(db: Session = Depends(get_db)):
+    """Return all topics flattened with subject and chapter info for easy dropdown selection."""
+    topics = (
+        db.query(Topic, Chapter.name.label("chapter_name"), Subject.name.label("subject_name"))
+        .join(Chapter, Topic.chapter_id == Chapter.id)
+        .join(Subject, Chapter.subject_id == Subject.id)
+        .order_by(Subject.name.asc(), Chapter.name.asc(), Topic.display_order.asc())
+        .all()
+    )
+    result = []
+    for t, ch_name, sub_name in topics:
+        result.append({
+            "id": str(t.id),
+            "name": t.name,
+            "chapter_name": ch_name,
+            "subject_name": sub_name,
+            "has_simulation": getattr(t, "has_simulation", False),
+            "simulation_route": getattr(t, "simulation_route", None),
+        })
+    return result
+
 
 @router.get("/search")
 def search_curriculum(q: str, db: Session = Depends(get_db)):
@@ -99,7 +124,11 @@ class ClassPayload(BaseModel):
     subjects: List[SubjectPayload] = []
 
 @router.post("/seed")
-def seed_curriculum(payload: List[ClassPayload], db: Session = Depends(get_db)):
+def seed_curriculum(
+    payload: List[ClassPayload],
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
     for c_order, c in enumerate(payload):
         # Upsert Class
         stmt_class = insert(CurriculumClass).values({

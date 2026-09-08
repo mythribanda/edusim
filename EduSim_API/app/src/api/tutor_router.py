@@ -16,34 +16,46 @@ from fastapi.responses import StreamingResponse
 
 tutor_router = APIRouter()
 
+from pydantic import BaseModel, Field
+from typing import List, Any
+from services.tutor import build_tutor_prompt, ask_tutor_service, identify_topic_from_text
+from services.ai_router import call_ai
+from services.mastery import update_mastery
 
-async def generate_learning_summary(explanation: str) -> str:
-    prompt = f"""
-    Please generate a concise educational learning summary from the following physics explanation.
-    The summary must:
-    1. Be 2-3 sentences maximum.
-    2. Capture the main concept taught.
-    3. Include important formulas if present.
-    4. Capture key learning outcomes.
-    5. Be suitable for revision later.
-    6. Respond with ONLY the summary text itself, with no introductory or trailing text.
+class AskTutorRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="Student question or physics prompt")
+    textbook_chunks: Optional[List[Any]] = Field(default=None, description="Optional textbook context excerpts")
+    session_id: Optional[str] = None
+    topic: Optional[str] = None
+    student_id: Optional[str] = None
 
-    Explanation:
-    {explanation}
+
+@tutor_router.post("/ask")
+async def ask_tutor_endpoint(
+    request: AskTutorRequest,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
     """
-    try:
-        # Request a short response (150 tokens) to keep usage minimal
-        summary = await generate_openrouter_text_async(
-            prompt, 
-            temperature=0.3, 
-            max_output_tokens=150,
-            system_prompt="You are a helpful physics summarizer. Create a 2-3 sentence educational summary of the explanation."
-        )
-        return summary.strip() if summary else "Summary unavailable."
-    except Exception as e:
-        logger.error(f"[Summary Generator Error] Failed to generate LLM summary: {e}")
-        # Graceful fallback: return a truncated explanation structure
-        return explanation[:250].strip() + "..."
+    Context-Aware Socratic Tutor Endpoint:
+    1. Loads student profile (mastery scores, weak topics, class level) via build_tutor_prompt()
+    2. Calls call_ai() from the AI router
+    3. Saves Q&A pair to chat_history
+    4. Calls update_mastery() if question maps to an identifiable topic
+    """
+    user = resolve_user_from_authorization(authorization, db)
+    student_id = request.student_id or (user.id if user else None)
+    if not student_id:
+        student_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+
+    result = await ask_tutor_service(
+        student_id=student_id,
+        question=request.query,
+        textbook_chunks=request.textbook_chunks,
+        session_id=request.session_id,
+        db=db,
+    )
+    return result
 
 
 @tutor_router.post("/analyze-stream")
@@ -93,10 +105,12 @@ async def analyze_query(
     request: TutorQueryRequest,
     background_tasks: BackgroundTasks,
     authorization: Optional[str] = Header(None),
+    x_request_id: Optional[str] = Header(None, alias="X-Request-ID"),
     db: Session = Depends(get_db),
 ):
     """
     Analyzes a physics query to detect concepts, formulas, and provide AI/RAG explanations.
+    Guarantees AT MOST ONE OpenRouter LLM call per action.
     """
     user = resolve_user_from_authorization(authorization, db)
     student_profile = None
@@ -114,7 +128,6 @@ async def analyze_query(
         if authorization and authorization.startswith("Bearer "):
             token_preview = authorization.split(" ", 1)[1][:20] + "..."
             logger.info(f"  Token preview: {token_preview}")
-            # Check specifically WHY token failed
             from app.src.utils.auth import decode_token as _decode
             raw_token = authorization.split(" ", 1)[1].strip()
             try:
@@ -129,14 +142,41 @@ async def analyze_query(
             except Exception:
                 logger.info("  Could not decode token for diagnostics")
         
-    response = await analyze_tutor_controller(request, student_profile)
+    effective_request_id = request.request_id or x_request_id or f"req_{uuid.uuid4().hex[:12]}"
+    response = await analyze_tutor_controller(request, student_profile, request_id=effective_request_id)
     logger.info("--- DEBUG AUTH ---")
     logger.info(f"Authorization Header: {'present' if authorization else 'MISSING'}")
     logger.info(f"Resolved User: {user.id if user else 'NONE (NOT SAVING)'}")
+    logger.info(f"Request ID: {effective_request_id}")
+    logger.info(f"Provider: {response.get('provider', 'unknown')} | Tokens: {response.get('tokens_used', 0)}")
     logger.info("------------------")
     data = response.get("data", {}) if isinstance(response, dict) else {}
     explanation = data.get("explanation") or data.get("ai_explanation") or ""
+    is_failed = bool(data.get("generation_failed", False)) or not bool(response.get("success", True))
+
+    is_402 = (
+        data.get("status_code") == 402
+        or data.get("error_type") == "BILLING_CREDIT_LIMIT"
+        or (is_failed and ("payment required (HTTP 402)" in explanation or "HTTP 402" in explanation))
+    )
+
+    if is_402:
+        from fastapi.responses import JSONResponse
+        logger.error("[DB SAVE SKIPPED] Tutor generation failed due to HTTP 402 Payment Required: %s", explanation[:150])
+        return JSONResponse(
+            status_code=402,
+            content={
+                "success": False,
+                "message": "OpenRouter payment required (HTTP 402). Please add credits to your OpenRouter account.",
+                "error": explanation,
+                "data": data,
+            }
+        )
     
+    if is_failed:
+        logger.error("[DB SAVE SKIPPED] Tutor generation failed: %s", explanation[:150])
+        return response
+
     if user:
         from app.src.repositories.persistence_repository import PersistenceRepository
         repo = PersistenceRepository(db)
@@ -158,12 +198,10 @@ async def analyze_query(
         if len(topic) > 100:
             topic = topic[:97] + "..."
             
-        if "Error:" in explanation:
-            logger.error("[DB SAVE SKIPPED] Tutor generation failed")
-            return response
-            
-        # 2. Generate a concise educational summary
-        summary = await generate_learning_summary(explanation)
+        # 2. Extract concise summary directly from the unified response (0 extra LLM calls)
+        summary = data.get("summary")
+        if not summary:
+            summary = await generate_learning_summary(explanation)
         
         # 3. Save the summary and explanation into chat_history
         try:
@@ -205,10 +243,8 @@ async def analyze_query(
             logger.info(f"topic: {topic}")
             logger.info(f"summary length: {len(summary) if summary else 0}")
             
-            logger.info("Before db.add()")
             db.add(user_record)
             db.add(assistant_record)
-            logger.info("After db.add()")
             
             record_activity(
                 db,
@@ -221,14 +257,9 @@ async def analyze_query(
                 metadata={"topic": topic},
             )
 
-            logger.info("Before db.commit()")
             db.commit()
-            logger.info("After db.commit()")
-            
-            logger.info("Before db.refresh()")
             db.refresh(user_record)
             db.refresh(assistant_record)
-            logger.info("After db.refresh()")
             
             logger.info(f"INSERTED RECORD ID: {user_record.id}")
             logger.info("-----------------------")
@@ -238,16 +269,15 @@ async def analyze_query(
                 response["message"] = "Learning summary saved successfully"
                 response["session_id"] = str(session_id)
                 
-            # Queue profile update in background
+            # Queue non-LLM profile update in background (0 extra LLM calls)
             if explanation and "Error:" not in explanation:
                 from app.src.config.database import SessionLocal
-                from app.src.modules.tutor.service import analyze_and_update_profile_task
+                from app.src.modules.tutor.service import update_profile_from_interaction
                 background_tasks.add_task(
-                    analyze_and_update_profile_task,
+                    update_profile_from_interaction,
                     SessionLocal,
                     user.id,
-                    request.query,
-                    explanation
+                    concepts
                 )
         except Exception as e:
             db.rollback()
@@ -320,6 +350,7 @@ async def get_tutor_guide(
 async def explain_sim(
     request: TutorQueryRequest,
     authorization: Optional[str] = Header(None),
+    x_request_id: Optional[str] = Header(None, alias="X-Request-ID"),
     db: Session = Depends(get_db),
 ):
     """
@@ -331,7 +362,8 @@ async def explain_sim(
         history_dicts = None
         if request.history:
             history_dicts = [{"role": msg.role, "content": msg.content} for msg in request.history]
-        data = await explain_simulation_query(request.query, history=history_dicts)
+        effective_request_id = request.request_id or x_request_id
+        data = await explain_simulation_query(request.query, history=history_dicts, request_id=effective_request_id)
         return {
             "success": True,
             "data": data

@@ -9,4 +9,8 @@ from app.src.models.persistence import (
     SimulationHistory,
     UserSetting,
     UserSession,
+    SessionEvent,
 )
+from app.src.models.school import Class, TeacherClassSubject, StudentEnrollment, StudentTopicMastery
+
+

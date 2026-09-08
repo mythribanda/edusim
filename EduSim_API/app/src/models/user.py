@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, Integer, String, Boolean, UUID, Text, Index
+from sqlalchemy import Column, DateTime, Integer, String, Boolean, UUID, Text, Index, ForeignKey
 from sqlalchemy.sql import func
 
 from app.src.config.database import Base
@@ -14,6 +14,8 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
     role = Column(String(20), default="student")
+    class_id = Column(UUID(as_uuid=True), nullable=True)
+    educator_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     last_login_at = Column(DateTime(timezone=True), nullable=True)

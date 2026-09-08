@@ -17,6 +17,7 @@ from app.src.models.persistence import (
     SimulationHistory,
     ChatHistory,
     UserSetting,
+    SessionEvent,
 )
 from app.src.services.persistence_service import (
     get_state_payload,
@@ -269,6 +270,13 @@ def get_tutor_session_endpoint(
     
     from app.src.services.persistence_service import get_tutor_conversation_payload
     payload = get_tutor_conversation_payload(db, sid)
+    session_owner = payload.get("user_id")
+    if session_owner and str(session_owner) != str(user.id):
+        if getattr(user, "role", None) not in ("admin", "educator", "teacher"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: You do not own this tutor session."
+            )
     return {"success": True, "session": payload}
 
 
@@ -637,7 +645,11 @@ def load_formula_calculation(
     db: Session = Depends(get_db),
 ):
     user = require_user(authorization, db)
-    calculation = db.query(FormulaHistory).filter(FormulaHistory.id == calculation_id, FormulaHistory.user_id == user.id).first()
+    try:
+        cid = uuid.UUID(calculation_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid calculation_id UUID format")
+    calculation = db.query(FormulaHistory).filter(FormulaHistory.id == cid, FormulaHistory.user_id == user.id).first()
     if not calculation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Formula calculation not found")
     return {"success": True, "calculation": calculation}
@@ -935,3 +947,66 @@ def delete_simulation_history(
         db.rollback()
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=500, content={"success": False, "message": "Failed to delete history."})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /session-event  — record one row in session_events
+# ─────────────────────────────────────────────────────────────────────────────
+
+VALID_EVENT_TYPES = {"started", "answered", "completed", "asked_tutor"}
+
+
+class SessionEventRequest(BaseModel):
+    module_id: Optional[str] = "00000000-0000-0000-0000-000000000000"
+    event_type: str
+    payload: Optional[dict] = None
+
+
+@persistence_router.post("/session-event")
+def create_session_event(
+    request: SessionEventRequest,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    """
+    Insert one row into session_events.
+    Called fire-and-forget from the frontend emitEvent() helper.
+    """
+    if request.event_type not in VALID_EVENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid event_type '{request.event_type}'. Must be one of: {sorted(VALID_EVENT_TYPES)}",
+        )
+
+    user = require_user(authorization, db)
+
+    try:
+        module_uuid = uuid.UUID(request.module_id)
+    except (ValueError, AttributeError):
+        module_uuid = uuid.UUID("00000000-0000-0000-0000-000000000000")
+
+    event = SessionEvent(
+        student_id=user.id,
+        module_id=module_uuid,
+        event_type=request.event_type,
+        payload=request.payload or {},
+    )
+    db.add(event)
+    try:
+        db.commit()
+        db.refresh(event)
+        return {
+            "success": True,
+            "event_id": str(event.id),
+            "event_type": event.event_type,
+            "created_at": event.created_at.isoformat() if event.created_at else None,
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[Database] Failed to write session_event: {e}")
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Failed to record session event."},
+        )
+

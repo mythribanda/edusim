@@ -8,13 +8,13 @@ authoritative RuntimeStore database, manages simulation session lifecycles,
 triggers mutations, and organizes snapshots/checkpoint timelines.
 
 It acts as an adapter between the FastAPI boundary and internal engine mechanics.
+Uses non-blocking asyncio.Lock() for high-concurrency event-loop safety.
 """
 
-
 from __future__ import annotations
+import asyncio
 import uuid
 from typing import Any, Dict, Optional
-from threading import Lock
 
 # Core Engine Imports
 from app.src.modules.sandbox.initialization.sandbox_initializer import SandboxInitializer
@@ -28,21 +28,37 @@ from app.src.modules.sandbox.state.snapshots import (
 )
 from app.src.modules.sandbox.serializers import RuntimeSerializer
 
-# Memory Registries
-_session_lock = Lock()
+# Memory Registries with non-blocking asyncio.Lock
+_session_lock = asyncio.Lock()
 _active_sessions: Dict[str, RuntimeStore] = {}
 _initial_specs: Dict[str, Any] = {}
 _timelines: Dict[str, SnapshotTimeline] = {}
+_session_owners: Dict[str, Optional[str]] = {}
 
 
-def generate_simulation(prompt: str, topic: Optional[str] = None) -> Dict[str, Any]:
+async def get_session_owner(simulation_id: str) -> Optional[str]:
+    """Retrieve the owner user_id for a given simulation session."""
+    async with _session_lock:
+        return _session_owners.get(simulation_id)
+
+
+async def set_session_owner(simulation_id: str, user_id: Optional[str]) -> None:
+    """Register or update the owner user_id for a simulation session."""
+    async with _session_lock:
+        _session_owners[simulation_id] = str(user_id) if user_id else None
+
+
+async def generate_simulation(
+    prompt: str,
+    topic: Optional[str] = None,
+    user_id: Optional[str] = None
+) -> Dict[str, Any]:
     """
     Coordinates context retrieval, LLM synthesis, Pydantic validation, 
     and compiler initialization to instantiate a new stateful session.
     
     Returns the full initial client-ready payload contract.
     """
-    # Import synthesis engine dynamically to avoid circular import issues
     from app.src.modules.simulation_synthesis.service import generate_simulation_synthesis
 
     # 1. Synthesize declarative sandbox specification using AI Synthesis Core
@@ -63,11 +79,13 @@ def generate_simulation(prompt: str, topic: Optional[str] = None) -> Dict[str, A
     timeline = SnapshotTimeline(store, max_history=100)
     timeline.record_checkpoint()
 
-    # 5. Register session persistently in memory
-    with _session_lock:
+    # 5. Register session persistently in memory with non-blocking async lock
+    async with _session_lock:
         _active_sessions[simulation_id] = store
         _initial_specs[simulation_id] = spec_data
         _timelines[simulation_id] = timeline
+        if user_id:
+            _session_owners[simulation_id] = str(user_id)
 
     # 6. Serialize and return the complete, frontend-safe initial payload
     return {
@@ -76,12 +94,12 @@ def generate_simulation(prompt: str, topic: Optional[str] = None) -> Dict[str, A
     }
 
 
-def load_simulation(simulation_id: str) -> Dict[str, Any]:
+async def load_simulation(simulation_id: str) -> Dict[str, Any]:
     """
     Retrieves an active RuntimeStore session by ID and returns 
     its current serialized state.
     """
-    with _session_lock:
+    async with _session_lock:
         store = _active_sessions.get(simulation_id)
 
     if not store:
@@ -93,11 +111,11 @@ def load_simulation(simulation_id: str) -> Dict[str, Any]:
     }
 
 
-def reset_simulation(simulation_id: str) -> Dict[str, Any]:
+async def reset_simulation(simulation_id: str) -> Dict[str, Any]:
     """
     Reconstructs the active simulation session back to its Frame 0 starting point.
     """
-    with _session_lock:
+    async with _session_lock:
         spec_data = _initial_specs.get(simulation_id)
 
     if not spec_data:
@@ -115,7 +133,7 @@ def reset_simulation(simulation_id: str) -> Dict[str, Any]:
     timeline = SnapshotTimeline(store, max_history=100)
     timeline.record_checkpoint()
 
-    with _session_lock:
+    async with _session_lock:
         _active_sessions[simulation_id] = store
         _timelines[simulation_id] = timeline
 
@@ -125,12 +143,12 @@ def reset_simulation(simulation_id: str) -> Dict[str, Any]:
     }
 
 
-def update_control(simulation_id: str, control_id: str, value: Any) -> Dict[str, Any]:
+async def update_control(simulation_id: str, control_id: str, value: Any) -> Dict[str, Any]:
     """
     Applies live widget slider values directly to physical bounds,
     re-evaluating observables, and returns the serialized tick sync frame.
     """
-    with _session_lock:
+    async with _session_lock:
         store = _active_sessions.get(simulation_id)
         timeline = _timelines.get(simulation_id)
 
@@ -154,11 +172,11 @@ def update_control(simulation_id: str, control_id: str, value: Any) -> Dict[str,
     }
 
 
-def get_runtime_payload(simulation_id: str) -> Dict[str, Any]:
+async def get_runtime_payload(simulation_id: str) -> Dict[str, Any]:
     """
     Retrieves standard high-speed client-ready ticks for WebSocket updates.
     """
-    with _session_lock:
+    async with _session_lock:
         store = _active_sessions.get(simulation_id)
 
     if not store:
@@ -170,11 +188,11 @@ def get_runtime_payload(simulation_id: str) -> Dict[str, Any]:
     }
 
 
-def get_snapshot(simulation_id: str) -> Dict[str, Any]:
+async def get_snapshot(simulation_id: str) -> Dict[str, Any]:
     """
     Takes a deep, serializable state checkpoint.
     """
-    with _session_lock:
+    async with _session_lock:
         store = _active_sessions.get(simulation_id)
 
     if not store:
@@ -187,12 +205,12 @@ def get_snapshot(simulation_id: str) -> Dict[str, Any]:
     }
 
 
-def restore_snapshot(simulation_id: str, snapshot_data: Dict[str, Any]) -> Dict[str, Any]:
+async def restore_snapshot(simulation_id: str, snapshot_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Loads and restores the state coordinates and observable clocks from
     a provided checkpoint dictionary.
     """
-    with _session_lock:
+    async with _session_lock:
         store = _active_sessions.get(simulation_id)
 
     if not store:

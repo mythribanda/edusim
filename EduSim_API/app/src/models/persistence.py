@@ -27,7 +27,7 @@ class TimestampMixin:
 
 
 class CurriculumClass(Base, TimestampMixin):
-    __tablename__ = "classes"
+    __tablename__ = "curriculum_classes"
 
     id = Column(Integer, primary_key=True)  # Using Integer to match TS class ID
     name = Column(String(100), nullable=False)
@@ -39,7 +39,7 @@ class Subject(Base, TimestampMixin):
     __tablename__ = "subjects"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    class_id = Column(Integer, ForeignKey("classes.id", ondelete="CASCADE"), nullable=False, index=True)
+    class_id = Column(Integer, ForeignKey("curriculum_classes.id", ondelete="CASCADE"), nullable=False, index=True)
     code = Column(String(100), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
@@ -163,3 +163,22 @@ class StudentProfile(Base, TimestampMixin):
     mastered_topics = Column(JSON, default=list, nullable=False)
     misconceptions = Column(JSON, default=list, nullable=False)
     metadata_json = Column(JSON, nullable=True)
+
+
+class SessionEvent(Base):
+    """
+    Session events tracking user interactions (started, answered, completed, asked_tutor).
+    Used for activity stream, streaks, and session analytics.
+    """
+    __tablename__ = "session_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    student_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    module_id = Column(UUID(as_uuid=True), nullable=True)
+    event_type = Column(Text, nullable=False, index=True)
+    payload = Column(JSON, default=dict, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    # Relationship to user
+    student = relationship("User", foreign_keys=[student_id], lazy="joined")
+

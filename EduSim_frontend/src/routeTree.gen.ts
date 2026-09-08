@@ -22,6 +22,7 @@ import { Route as SubjectsClassIdRouteImport } from './routes/subjects.$classId'
 import { Route as SimulationTopicRouteImport } from './routes/simulation.$topic'
 import { Route as SandboxSimulationIdRouteImport } from './routes/sandbox.$simulationId'
 import { Route as FormulaLabTopicRouteImport } from './routes/formula-lab.$topic'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ChaptersClassIdSubjectRouteImport } from './routes/chapters.$classId.$subject'
 import { Route as TopicsClassIdSubjectChapterRouteImport } from './routes/topics.$classId.$subject.$chapter'
 
@@ -90,6 +91,11 @@ const FormulaLabTopicRoute = FormulaLabTopicRouteImport.update({
   path: '/formula-lab/$topic',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChaptersClassIdSubjectRoute = ChaptersClassIdSubjectRouteImport.update({
   id: '/chapters/$classId/$subject',
   path: '/chapters/$classId/$subject',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/tutor': typeof TutorRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/formula-lab/$topic': typeof FormulaLabTopicRoute
   '/sandbox/$simulationId': typeof SandboxSimulationIdRoute
   '/simulation/$topic': typeof SimulationTopicRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/tutor': typeof TutorRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/formula-lab/$topic': typeof FormulaLabTopicRoute
   '/sandbox/$simulationId': typeof SandboxSimulationIdRoute
   '/simulation/$topic': typeof SimulationTopicRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/tutor': typeof TutorRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/formula-lab/$topic': typeof FormulaLabTopicRoute
   '/sandbox/$simulationId': typeof SandboxSimulationIdRoute
   '/simulation/$topic': typeof SimulationTopicRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/tutor'
+    | '/auth/callback'
     | '/formula-lab/$topic'
     | '/sandbox/$simulationId'
     | '/simulation/$topic'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/tutor'
+    | '/auth/callback'
     | '/formula-lab/$topic'
     | '/sandbox/$simulationId'
     | '/simulation/$topic'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/tutor'
+    | '/auth/callback'
     | '/formula-lab/$topic'
     | '/sandbox/$simulationId'
     | '/simulation/$topic'
@@ -218,6 +230,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   TutorRoute: typeof TutorRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   FormulaLabTopicRoute: typeof FormulaLabTopicRoute
   SandboxSimulationIdRoute: typeof SandboxSimulationIdRoute
   SimulationTopicRoute: typeof SimulationTopicRoute
@@ -319,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FormulaLabTopicRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chapters/$classId/$subject': {
       id: '/chapters/$classId/$subject'
       path: '/chapters/$classId/$subject'
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   TutorRoute: TutorRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   FormulaLabTopicRoute: FormulaLabTopicRoute,
   SandboxSimulationIdRoute: SandboxSimulationIdRoute,
   SimulationTopicRoute: SimulationTopicRoute,

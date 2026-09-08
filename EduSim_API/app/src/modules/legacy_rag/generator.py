@@ -377,19 +377,60 @@ def _extract_openrouter_content(data: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _log_model_attempt(model_name: str, fallback: bool = False):
+import uuid
+from collections import OrderedDict
+
+# In-memory Request-ID deduplication cache (LRU eviction, max 1000 items)
+_REQUEST_CACHE: OrderedDict[str, str] = OrderedDict()
+_MAX_CACHE_SIZE = 1000
+
+
+def _sanitize_error(msg: str) -> str:
+    if not msg:
+        return ""
+    # Mask any Bearer tokens or sensitive keys
+    sanitized = re.sub(r'Bearer\s+[A-Za-z0-9_\-\.]+', 'Bearer [MASKED]', str(msg))
+    sanitized = re.sub(r'sk-or-[A-Za-z0-9_\-\.]+', '[MASKED_KEY]', sanitized)
+    if OPENROUTER_API_KEY and OPENROUTER_API_KEY != "YOUR_API_KEY" and len(OPENROUTER_API_KEY) > 6:
+        sanitized = sanitized.replace(OPENROUTER_API_KEY, "[MASKED_KEY]")
+    return sanitized
+
+
+class OpenRouterError(Exception):
+    def __init__(self, message: str, status_code: int | None = None, is_fatal: bool = False, error_type: str = "UNKNOWN"):
+        clean_msg = _sanitize_error(message)
+        super().__init__(clean_msg)
+        self.status_code = status_code
+        self.is_fatal = is_fatal
+        self.error_type = error_type
+
+
+def _cache_put(req_id: str, content: str):
+    if not req_id or not content:
+        return
+    if req_id in _REQUEST_CACHE:
+        _REQUEST_CACHE.move_to_end(req_id)
+    _REQUEST_CACHE[req_id] = content
+    if len(_REQUEST_CACHE) > _MAX_CACHE_SIZE:
+        _REQUEST_CACHE.popitem(last=False)
+
+
+def _log_model_attempt(model_name: str, fallback: bool = False, request_id: str | None = None):
+    req_str = f"request_id={request_id} " if request_id else ""
     if fallback:
-        logger.info(f"[LLM] Fallback model triggered: {model_name}")
+        logger.info(f"[LLM] {req_str}Fallback model triggered: {model_name}")
     else:
-        logger.info(f"[LLM] Using model: {model_name}")
+        logger.info(f"[LLM] {req_str}Using model: {model_name}")
 
 
-def _log_model_failure(model_name: str, error: str):
-    logger.error(f"[LLM] Model failed: {model_name} ({error})")
+def _log_model_failure(model_name: str, error: str, request_id: str | None = None):
+    req_str = f"request_id={request_id} " if request_id else ""
+    logger.error(f"[LLM] {req_str}Model failed: {model_name} ({error})")
 
 
-def _log_model_success(model_name: str):
-    logger.info(f"[LLM] Response generated successfully ({model_name})")
+def _log_model_success(model_name: str, request_id: str | None = None):
+    req_str = f"request_id={request_id} " if request_id else ""
+    logger.info(f"[LLM] {req_str}Response generated successfully ({model_name})")
 
 
 def clean_history_for_llm(history: list[dict[str, str]] | None) -> list[dict[str, str]]:
@@ -422,10 +463,14 @@ def _generate_openrouter_text(
     system_prompt: str | None = NEW_RENDERING_SYSTEM,
     history: list[dict[str, str]] | None = None,
     response_format: dict | None = None,
-):
-    if not OPENROUTER_API_KEY:
-        _log_model_failure(model_name, "missing API key")
-        return None
+    request_id: str | None = None,
+) -> Optional[str]:
+    req_id = request_id or f"req_{uuid.uuid4().hex[:12]}"
+    if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "YOUR_API_KEY":
+        logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} error=Missing or unconfigured OPENROUTER_API_KEY")
+        raise OpenRouterError("Missing OpenRouter API key. Please configure OPENROUTER_API_KEY.", status_code=401, is_fatal=True)
+
+    logger.info(f"[LLM REQUEST] request_id={req_id} model={model_name} prompt_preview={repr(prompt[:80])}")
 
     try:
         with httpx.Client(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
@@ -450,19 +495,45 @@ def _generate_openrouter_text(
                 json=payload,
             )
 
+            if response.status_code == 402:
+                logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code=402 error=Payment Required (Billing/Credit Limit)")
+                raise OpenRouterError("OpenRouter payment required (HTTP 402). Insufficient credits or model limit reached.", status_code=402, is_fatal=False, error_type="BILLING_CREDIT_LIMIT")
+
+            if response.status_code == 401:
+                logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code=401 error=Unauthorized (Invalid API key)")
+                raise OpenRouterError("OpenRouter authentication failed (HTTP 401). Invalid API key.", status_code=401, is_fatal=True, error_type="AUTH_ERROR")
+
             response.raise_for_status()
             data = response.json()
-            usage = data.get("usage")
-            if usage:
-                p_tokens = usage.get("prompt_tokens", 0)
-                c_tokens = usage.get("completion_tokens", 0)
-                t_tokens = usage.get("total_tokens", 0)
-                logger.info(f"[OpenRouter Token Usage] Model: {model_name} | Prompt: {p_tokens} | Completion: {c_tokens} | Total: {t_tokens}")
+            usage = data.get("usage") or {}
+            t_tokens = usage.get("total_tokens", 0)
+            logger.info(f"[LLM RESPONSE] request_id={req_id} model={model_name} status=success tokens={t_tokens}")
             return _extract_openrouter_content(data)
 
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code
+        err_detail = _sanitize_error(e.response.text[:200])
+        logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code={status_code} error={err_detail}")
+        if status_code == 402:
+            raise OpenRouterError("OpenRouter payment required (HTTP 402). Insufficient credits or model limit reached.", status_code=402, is_fatal=False, error_type="BILLING_CREDIT_LIMIT")
+        elif status_code == 401:
+            raise OpenRouterError("OpenRouter authentication failed (HTTP 401). Invalid API key.", status_code=401, is_fatal=True, error_type="AUTH_ERROR")
+        elif status_code == 429:
+            raise OpenRouterError(f"OpenRouter rate limit exceeded (HTTP 429): {err_detail}", status_code=429, is_fatal=False, error_type="RATE_LIMIT")
+        elif status_code >= 500:
+            raise OpenRouterError(f"OpenRouter server error (HTTP {status_code}): {err_detail}", status_code=status_code, is_fatal=False, error_type="SERVER_ERROR")
+        else:
+            raise OpenRouterError(f"OpenRouter HTTP {status_code} error: {err_detail}", status_code=status_code, is_fatal=True, error_type="CLIENT_ERROR")
+    except httpx.TimeoutException as e:
+        clean_err = _sanitize_error(str(e))
+        logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code=timeout error={clean_err}")
+        raise OpenRouterError(f"OpenRouter request timed out: {clean_err}", status_code=408, is_fatal=False, error_type="TIMEOUT")
+    except OpenRouterError:
+        raise
     except Exception as e:
-        _log_model_failure(model_name, str(e))
-        return None
+        clean_err = _sanitize_error(str(e))
+        logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code=exception error={clean_err}")
+        raise OpenRouterError(f"OpenRouter request failed: {clean_err}", status_code=500, is_fatal=False, error_type="EXCEPTION")
 
 
 async def _generate_openrouter_text_async(
@@ -473,10 +544,14 @@ async def _generate_openrouter_text_async(
     system_prompt: str | None = NEW_RENDERING_SYSTEM,
     history: list[dict[str, str]] | None = None,
     response_format: dict | None = None,
-):
-    if not OPENROUTER_API_KEY:
-        _log_model_failure(model_name, "missing API key")
-        return None
+    request_id: str | None = None,
+) -> Optional[str]:
+    req_id = request_id or f"req_{uuid.uuid4().hex[:12]}"
+    if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "YOUR_API_KEY":
+        logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} error=Missing or unconfigured OPENROUTER_API_KEY")
+        raise OpenRouterError("Missing OpenRouter API key. Please configure OPENROUTER_API_KEY.", status_code=401, is_fatal=True)
+
+    logger.info(f"[LLM REQUEST] request_id={req_id} model={model_name} prompt_preview={repr(prompt[:80])}")
 
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
@@ -501,19 +576,45 @@ async def _generate_openrouter_text_async(
                 json=payload,
             )
 
+            if response.status_code == 402:
+                logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code=402 error=Payment Required (Billing/Credit Limit)")
+                raise OpenRouterError("OpenRouter payment required (HTTP 402). Insufficient credits or model limit reached.", status_code=402, is_fatal=False, error_type="BILLING_CREDIT_LIMIT")
+
+            if response.status_code == 401:
+                logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code=401 error=Unauthorized (Invalid API key)")
+                raise OpenRouterError("OpenRouter authentication failed (HTTP 401). Invalid API key.", status_code=401, is_fatal=True, error_type="AUTH_ERROR")
+
             response.raise_for_status()
             data = response.json()
-            usage = data.get("usage")
-            if usage:
-                p_tokens = usage.get("prompt_tokens", 0)
-                c_tokens = usage.get("completion_tokens", 0)
-                t_tokens = usage.get("total_tokens", 0)
-                logger.info(f"[OpenRouter Token Usage] Model: {model_name} | Prompt: {p_tokens} | Completion: {c_tokens} | Total: {t_tokens}")
+            usage = data.get("usage") or {}
+            t_tokens = usage.get("total_tokens", 0)
+            logger.info(f"[LLM RESPONSE] request_id={req_id} model={model_name} status=success tokens={t_tokens}")
             return _extract_openrouter_content(data)
 
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code
+        err_detail = _sanitize_error(e.response.text[:200])
+        logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code={status_code} error={err_detail}")
+        if status_code == 402:
+            raise OpenRouterError("OpenRouter payment required (HTTP 402). Insufficient credits or model limit reached.", status_code=402, is_fatal=False, error_type="BILLING_CREDIT_LIMIT")
+        elif status_code == 401:
+            raise OpenRouterError("OpenRouter authentication failed (HTTP 401). Invalid API key.", status_code=401, is_fatal=True, error_type="AUTH_ERROR")
+        elif status_code == 429:
+            raise OpenRouterError(f"OpenRouter rate limit exceeded (HTTP 429): {err_detail}", status_code=429, is_fatal=False, error_type="RATE_LIMIT")
+        elif status_code >= 500:
+            raise OpenRouterError(f"OpenRouter server error (HTTP {status_code}): {err_detail}", status_code=status_code, is_fatal=False, error_type="SERVER_ERROR")
+        else:
+            raise OpenRouterError(f"OpenRouter HTTP {status_code} error: {err_detail}", status_code=status_code, is_fatal=True, error_type="CLIENT_ERROR")
+    except httpx.TimeoutException as e:
+        clean_err = _sanitize_error(str(e))
+        logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code=timeout error={clean_err}")
+        raise OpenRouterError(f"OpenRouter request timed out: {clean_err}", status_code=408, is_fatal=False, error_type="TIMEOUT")
+    except OpenRouterError:
+        raise
     except Exception as e:
-        _log_model_failure(model_name, str(e))
-        return None
+        clean_err = _sanitize_error(str(e))
+        logger.error(f"[LLM ERROR] request_id={req_id} model={model_name} status_code=exception error={clean_err}")
+        raise OpenRouterError(f"OpenRouter request failed: {clean_err}", status_code=500, is_fatal=False, error_type="EXCEPTION")
 
 
 def generate_llm_text(
@@ -523,6 +624,7 @@ def generate_llm_text(
     system_prompt: str | None = NEW_RENDERING_SYSTEM,
     history: list[dict[str, str]] | None = None,
     response_format: dict | None = None,
+    request_id: str | None = None,
 ):
     final_prompt = final_prompt.strip()
     return generate_openrouter_text(
@@ -532,90 +634,8 @@ def generate_llm_text(
         system_prompt=system_prompt,
         history=history,
         response_format=response_format,
+        request_id=request_id,
     )
-
-
-def _is_response_complete(text: str, prompt: str = "", system_prompt: str | None = None, history: list[dict[str, str]] | None = None) -> bool:
-    if not text:
-        return False
-    trimmed = text.strip()
-    if not trimmed:
-        return False
-
-    # Clean markdown json blocks if present to check JSON completeness
-    cleaned_json_text = trimmed
-    if cleaned_json_text.startswith("```"):
-        cleaned_json_text = re.sub(r"^```(?:json)?|```$", "", cleaned_json_text, flags=re.MULTILINE).strip()
-
-    # If it is a JSON response or prompt asks for JSON, check matching structure or valid JSON parse
-    is_json_request = (
-        cleaned_json_text.startswith("{") or
-        cleaned_json_text.startswith("[") or
-        "json" in prompt.lower() or
-        (system_prompt and "json" in system_prompt.lower())
-    )
-    if is_json_request:
-        # Check if it parses as valid JSON
-        try:
-            json.loads(cleaned_json_text)
-            return True
-        except Exception:
-            # If it's a JSON request but didn't parse, check if it structurally ends with closing brackets
-            if cleaned_json_text.endswith("}") or cleaned_json_text.endswith("]"):
-                return True
-            return False
-
-    if len(trimmed) < 150:
-        # Short responses are complete as long as they end with standard punctuation
-        return trimmed[-1] in [".", "?", "!", '"', "*", "$", "}", ")"]
-
-    # For any long response, as long as it ends with proper punctuation, it is complete
-    if len(trimmed) > 1000 and trimmed[-1] in [".", "?", "!", '"', "*", "$", "}", ")"]:
-        return True
-
-    # Textbook curriculum generation requires structural completeness markers
-    is_simulation = (
-        "simulation" in prompt.lower() or
-        (system_prompt and "simulation" in system_prompt.lower())
-    )
-
-    is_textbook_generation = (
-        "textbook" in prompt.lower() or
-        "curriculum" in prompt.lower() or
-        (system_prompt and (
-            "textbook" in system_prompt.lower() or
-            "curriculum" in system_prompt.lower() or
-            "new rendering system" in system_prompt.lower()
-        ))
-    )
-
-    # Conversational follow-ups (history is present) should not trigger retry loops
-    if history and len(history) > 0:
-        return True
-
-    if is_textbook_generation:
-        structure_part = prompt
-        if "REQUIRED RESPONSE STRUCTURE" in prompt:
-            structure_part = prompt.split("REQUIRED RESPONSE STRUCTURE")[-1]
-            
-        expects_summary = "Summary" in structure_part
-        expects_questions = "Suggested Questions" in structure_part
-        
-        if expects_summary and expects_questions:
-            has_summary_marker = "Summary" in text or "Suggested" in text or "Question" in text or "Takeaway" in text
-            if not has_summary_marker and len(trimmed) < 400:
-                return False
-
-    # For non-textbook responses (simulation, short answers, etc.), be lenient
-    if len(trimmed) > 1000:
-        return True
-
-    if trimmed[-1] not in [".", "?", "!", '"', "*", "$", "}", ")", "`", "]", "/"]:
-        if len(trimmed) > 300:
-            return True
-        return False
-
-    return True
 
 
 def generate_openrouter_text(
@@ -625,40 +645,104 @@ def generate_openrouter_text(
     system_prompt: str | None = None,
     history: list[dict[str, str]] | None = None,
     response_format: dict | None = None,
-):
+    request_id: str | None = None,
+) -> str:
+    req_id = request_id or f"req_{uuid.uuid4().hex[:12]}"
+
+    # Deduplication check: prevent sending the exact same request_id more than once
+    if req_id in _REQUEST_CACHE:
+        logger.info(f"[LLM CACHE HIT] request_id={req_id} returning cached response without OpenRouter request")
+        return _REQUEST_CACHE[req_id]
+
     history = clean_history_for_llm(history)
     models = get_model_chain()
-    best_fallback = None
+    primary_model = models[0] if models else "google/gemini-2.5-flash"
+    fallback_model = models[1] if len(models) > 1 else None
 
-    for index, model_name in enumerate(models):
-        _log_model_attempt(model_name, fallback=index > 0)
-        current_max = max_output_tokens
-        current_temp = temperature
-        for attempt in range(2):
-            result = _generate_openrouter_text(
+    # --- ATTEMPT 1: PRIMARY MODEL (EXACTLY ONE ATTEMPT) ---
+    logger.info(f"[LLM PRIMARY ATTEMPT] request_id={req_id} model={primary_model}")
+    primary_error = None
+    primary_status_code = None
+    primary_error_type = None
+
+    try:
+        result = _generate_openrouter_text(
+            prompt,
+            primary_model,
+            temperature,
+            max_output_tokens,
+            system_prompt=system_prompt,
+            history=history,
+            response_format=response_format,
+            request_id=req_id,
+        )
+        if result and not result.startswith("Error:"):
+            # SUCCESS: NEVER call fallback model after successful response!
+            _cache_put(req_id, result)
+            logger.info(f"[LLM STATUS] request_id={req_id} status=SUCCESS model={primary_model}")
+            return result
+        else:
+            primary_error = result or "Empty response from primary model"
+            primary_error_type = "EMPTY_RESPONSE"
+    except OpenRouterError as e:
+        primary_error = _sanitize_error(str(e))
+        primary_status_code = e.status_code
+        primary_error_type = getattr(e, "error_type", "API_ERROR")
+        if primary_status_code == 401:
+            logger.error(f"[LLM PRIMARY FAILURE] request_id={req_id} model={primary_model} status_code=401 error_type=AUTH_ERROR error={primary_error}")
+            logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{primary_error}\"")
+            return f"Error: {primary_error}"
+    except Exception as e:
+        primary_error = _sanitize_error(str(e))
+        primary_error_type = "EXCEPTION"
+
+    logger.warning(
+        f"[LLM PRIMARY FAILURE] request_id={req_id} model={primary_model} "
+        f"status_code={primary_status_code} error_type={primary_error_type} error={primary_error}"
+    )
+
+    # --- ATTEMPT 2: FALLBACK MODEL (AT MOST ONE ATTEMPT) ---
+    if fallback_model and fallback_model != primary_model:
+        reason = f"Primary failed with status_code={primary_status_code} ({primary_error_type})"
+        logger.info(f"[LLM FALLBACK ATTEMPT] request_id={req_id} model={fallback_model} reason=\"{reason}\"")
+        try:
+            fb_result = _generate_openrouter_text(
                 prompt,
-                model_name,
-                current_temp,
-                current_max,
+                fallback_model,
+                temperature,
+                max_output_tokens,
                 system_prompt=system_prompt,
                 history=history,
                 response_format=response_format,
+                request_id=req_id,
             )
-            if result:
-                if _is_response_complete(result, prompt=prompt, system_prompt=system_prompt, history=history):
-                    _log_model_success(model_name)
-                    return result
-                else:
-                    best_fallback = result
-                    logger.info(f"[LLM] Response incomplete on attempt {attempt + 1}. Retrying with more tokens...")
-                    current_max = min(current_max + 800, 4096)
-                    current_temp = 0.15
+            if fb_result and not fb_result.startswith("Error:"):
+                # Fallback succeeded! Return successful response normally and cache it.
+                _cache_put(req_id, fb_result)
+                logger.info(f"[LLM FALLBACK SUCCESS] request_id={req_id} model={fallback_model}")
+                logger.info(f"[LLM STATUS] request_id={req_id} status=SUCCESS model={fallback_model}")
+                return fb_result
+            else:
+                fb_error = fb_result or "Empty response from fallback model"
+                logger.error(f"[LLM FALLBACK FAILURE] request_id={req_id} model={fallback_model} status_code=None error_type=EMPTY_RESPONSE error={fb_error}")
+                logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{fb_error}\"")
+                return fb_error
+        except OpenRouterError as e:
+            fb_error = _sanitize_error(str(e))
+            logger.error(
+                f"[LLM FALLBACK FAILURE] request_id={req_id} model={fallback_model} "
+                f"status_code={e.status_code} error_type={getattr(e, 'error_type', 'API_ERROR')} error={fb_error}"
+            )
+            logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{fb_error}\"")
+            return f"Error: {fb_error}"
+        except Exception as e:
+            fb_error = _sanitize_error(str(e))
+            logger.error(f"[LLM FALLBACK FAILURE] request_id={req_id} model={fallback_model} status_code=exception error_type=EXCEPTION error={fb_error}")
+            logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{fb_error}\"")
+            return f"Error: Fallback model {fallback_model} failed: {fb_error}"
 
-    if best_fallback:
-        logger.info("[LLM] Returning best fallback incomplete response.")
-        return best_fallback
-
-    return "Error: Unable to generate response from OpenRouter."
+    logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{primary_error}\"")
+    return f"Error: {primary_error or 'Unable to generate response from OpenRouter.'}"
 
 
 async def generate_llm_text_async(
@@ -668,6 +752,7 @@ async def generate_llm_text_async(
     system_prompt: str | None = NEW_RENDERING_SYSTEM,
     history: list[dict[str, str]] | None = None,
     response_format: dict | None = None,
+    request_id: str | None = None,
 ):
     final_prompt = final_prompt.strip()
     return await generate_openrouter_text_async(
@@ -677,6 +762,7 @@ async def generate_llm_text_async(
         system_prompt=system_prompt,
         history=history,
         response_format=response_format,
+        request_id=request_id,
     )
 
 
@@ -687,40 +773,104 @@ async def generate_openrouter_text_async(
     system_prompt: str | None = None,
     history: list[dict[str, str]] | None = None,
     response_format: dict | None = None,
-):
+    request_id: str | None = None,
+) -> str:
+    req_id = request_id or f"req_{uuid.uuid4().hex[:12]}"
+
+    # Deduplication check: prevent sending the exact same request_id more than once
+    if req_id in _REQUEST_CACHE:
+        logger.info(f"[LLM CACHE HIT] request_id={req_id} returning cached response without OpenRouter request")
+        return _REQUEST_CACHE[req_id]
+
     history = clean_history_for_llm(history)
     models = get_model_chain()
-    best_fallback = None
+    primary_model = models[0] if models else "google/gemini-2.5-flash"
+    fallback_model = models[1] if len(models) > 1 else None
 
-    for index, model_name in enumerate(models):
-        _log_model_attempt(model_name, fallback=index > 0)
-        current_max = max_output_tokens
-        current_temp = temperature
-        for attempt in range(2):
-            result = await _generate_openrouter_text_async(
+    # --- ATTEMPT 1: PRIMARY MODEL (EXACTLY ONE ATTEMPT) ---
+    logger.info(f"[LLM PRIMARY ATTEMPT] request_id={req_id} model={primary_model}")
+    primary_error = None
+    primary_status_code = None
+    primary_error_type = None
+
+    try:
+        result = await _generate_openrouter_text_async(
+            prompt,
+            primary_model,
+            temperature,
+            max_output_tokens,
+            system_prompt=system_prompt,
+            history=history,
+            response_format=response_format,
+            request_id=req_id,
+        )
+        if result and not result.startswith("Error:"):
+            # SUCCESS: NEVER call fallback model after successful response!
+            _cache_put(req_id, result)
+            logger.info(f"[LLM STATUS] request_id={req_id} status=SUCCESS model={primary_model}")
+            return result
+        else:
+            primary_error = result or "Empty response from primary model"
+            primary_error_type = "EMPTY_RESPONSE"
+    except OpenRouterError as e:
+        primary_error = _sanitize_error(str(e))
+        primary_status_code = e.status_code
+        primary_error_type = getattr(e, "error_type", "API_ERROR")
+        if primary_status_code == 401:
+            logger.error(f"[LLM PRIMARY FAILURE] request_id={req_id} model={primary_model} status_code=401 error_type=AUTH_ERROR error={primary_error}")
+            logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{primary_error}\"")
+            return f"Error: {primary_error}"
+    except Exception as e:
+        primary_error = _sanitize_error(str(e))
+        primary_error_type = "EXCEPTION"
+
+    logger.warning(
+        f"[LLM PRIMARY FAILURE] request_id={req_id} model={primary_model} "
+        f"status_code={primary_status_code} error_type={primary_error_type} error={primary_error}"
+    )
+
+    # --- ATTEMPT 2: FALLBACK MODEL (AT MOST ONE ATTEMPT) ---
+    if fallback_model and fallback_model != primary_model:
+        reason = f"Primary failed with status_code={primary_status_code} ({primary_error_type})"
+        logger.info(f"[LLM FALLBACK ATTEMPT] request_id={req_id} model={fallback_model} reason=\"{reason}\"")
+        try:
+            fb_result = await _generate_openrouter_text_async(
                 prompt,
-                model_name,
-                current_temp,
-                current_max,
+                fallback_model,
+                temperature,
+                max_output_tokens,
                 system_prompt=system_prompt,
                 history=history,
                 response_format=response_format,
+                request_id=req_id,
             )
-            if result:
-                if _is_response_complete(result, prompt=prompt, system_prompt=system_prompt, history=history):
-                    _log_model_success(model_name)
-                    return result
-                else:
-                    best_fallback = result
-                    logger.info(f"[LLM] Response incomplete on attempt {attempt + 1}. Retrying with more tokens...")
-                    current_max = min(current_max + 800, 4096)
-                    current_temp = 0.15
+            if fb_result and not fb_result.startswith("Error:"):
+                # Fallback succeeded! Return successful response normally and cache it.
+                _cache_put(req_id, fb_result)
+                logger.info(f"[LLM FALLBACK SUCCESS] request_id={req_id} model={fallback_model}")
+                logger.info(f"[LLM STATUS] request_id={req_id} status=SUCCESS model={fallback_model}")
+                return fb_result
+            else:
+                fb_error = fb_result or "Empty response from fallback model"
+                logger.error(f"[LLM FALLBACK FAILURE] request_id={req_id} model={fallback_model} status_code=None error_type=EMPTY_RESPONSE error={fb_error}")
+                logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{fb_error}\"")
+                return fb_error
+        except OpenRouterError as e:
+            fb_error = _sanitize_error(str(e))
+            logger.error(
+                f"[LLM FALLBACK FAILURE] request_id={req_id} model={fallback_model} "
+                f"status_code={e.status_code} error_type={getattr(e, 'error_type', 'API_ERROR')} error={fb_error}"
+            )
+            logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{fb_error}\"")
+            return f"Error: {fb_error}"
+        except Exception as e:
+            fb_error = _sanitize_error(str(e))
+            logger.error(f"[LLM FALLBACK FAILURE] request_id={req_id} model={fallback_model} status_code=exception error_type=EXCEPTION error={fb_error}")
+            logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{fb_error}\"")
+            return f"Error: Fallback model {fallback_model} failed: {fb_error}"
 
-    if best_fallback:
-        logger.info("[LLM] Returning best fallback incomplete response.")
-        return best_fallback
-
-    return "Error: Unable to generate response from OpenRouter."
+    logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"{primary_error}\"")
+    return f"Error: {primary_error or 'Unable to generate response from OpenRouter.'}"
 
 
 async def generate_llm_stream_async(
@@ -729,16 +879,82 @@ async def generate_llm_stream_async(
     max_output_tokens: int = 1800,
     history: list[dict[str, str]] | None = None,
     system_prompt: str | None = NEW_RENDERING_SYSTEM,
+    request_id: str | None = None,
 ):
     final_prompt = final_prompt.strip()
-    if not OPENROUTER_API_KEY:
-        yield "data: Error: Missing API Key\n\n"
+    req_id = request_id or f"req_{uuid.uuid4().hex[:12]}"
+    if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "YOUR_API_KEY":
+        logger.error(f"[LLM ERROR] request_id={req_id} error=Missing OPENROUTER_API_KEY")
+        yield f"data: {json.dumps({'error': 'Missing OpenRouter API Key'})}\n\n"
         return
 
     models = get_model_chain()
+    primary_model = models[0] if models else "google/gemini-2.5-flash"
+    fallback_model = models[1] if len(models) > 1 else None
 
-    for index, model_name in enumerate(models):
-        _log_model_attempt(model_name, fallback=index > 0)
+    logger.info(f"[LLM STREAM REQUEST] request_id={req_id} model={primary_model}")
+
+    # Try primary model
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
+            messages = (history or []) + [
+                {
+                    "role": "user",
+                    "content": _format_prompt(final_prompt, system_prompt),
+                }
+            ]
+            async with client.stream(
+                "POST",
+                OPENROUTER_URL,
+                headers=_openrouter_headers(),
+                json={
+                    "model": primary_model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_output_tokens,
+                    "stream": True,
+                    "stream_options": {"include_usage": True},
+                },
+            ) as response:
+                if response.status_code == 402:
+                    logger.warning(f"[LLM PRIMARY FAILURE] request_id={req_id} model={primary_model} status_code=402 error_type=BILLING_CREDIT_LIMIT error=Payment Required")
+                    # Fall through to attempt fallback model
+                elif response.status_code == 401:
+                    logger.error(f"[LLM PRIMARY FAILURE] request_id={req_id} model={primary_model} status_code=401 error_type=AUTH_ERROR error=Unauthorized")
+                    yield f"data: {json.dumps({'error': 'OpenRouter authentication failed (HTTP 401). Invalid API key.'})}\n\n"
+                    return
+                elif response.status_code >= 400:
+                    logger.warning(f"[LLM PRIMARY FAILURE] request_id={req_id} model={primary_model} status_code={response.status_code} error={_sanitize_error(response.text[:150])}")
+                    # Fall through to fallback
+                else:
+                    response.raise_for_status()
+                    emitted_chunk = False
+
+                    async for chunk in response.aiter_lines():
+                        if chunk.startswith("data: "):
+                            data_str = chunk[6:]
+                            if data_str == "[DONE]":
+                                break
+                            try:
+                                data = json.loads(data_str)
+                                if "choices" in data and len(data["choices"]) > 0:
+                                    delta = data["choices"][0].get("delta", {}).get("content", "")
+                                    if delta:
+                                        emitted_chunk = True
+                                        yield f"data: {json.dumps({'content': delta})}\n\n"
+                            except json.JSONDecodeError:
+                                continue
+
+                    if emitted_chunk:
+                        logger.info(f"[LLM STATUS] request_id={req_id} status=SUCCESS model={primary_model}")
+                        return
+
+    except Exception as e:
+        logger.warning(f"[LLM PRIMARY FAILURE] request_id={req_id} model={primary_model} error={_sanitize_error(str(e))}")
+
+    # Fallback model (if primary failed)
+    if fallback_model and fallback_model != primary_model:
+        logger.info(f"[LLM FALLBACK ATTEMPT] request_id={req_id} model={fallback_model} reason=\"Primary stream failed\"")
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
                 messages = (history or []) + [
@@ -752,7 +968,7 @@ async def generate_llm_stream_async(
                     OPENROUTER_URL,
                     headers=_openrouter_headers(),
                     json={
-                        "model": model_name,
+                        "model": fallback_model,
                         "messages": messages,
                         "temperature": temperature,
                         "max_tokens": max_output_tokens,
@@ -760,23 +976,21 @@ async def generate_llm_stream_async(
                         "stream_options": {"include_usage": True},
                     },
                 ) as response:
+                    if response.status_code >= 400:
+                        err_text = _sanitize_error(response.text[:150])
+                        logger.error(f"[LLM FALLBACK FAILURE] request_id={req_id} model={fallback_model} status_code={response.status_code} error={err_text}")
+                        yield f"data: {json.dumps({'error': f'Fallback model failed (HTTP {response.status_code})'})}\n\n"
+                        return
+
                     response.raise_for_status()
                     emitted_chunk = False
-
                     async for chunk in response.aiter_lines():
                         if chunk.startswith("data: "):
                             data_str = chunk[6:]
                             if data_str == "[DONE]":
                                 break
-
                             try:
                                 data = json.loads(data_str)
-                                if "usage" in data and data["usage"]:
-                                    usage = data["usage"]
-                                    p_tokens = usage.get("prompt_tokens", 0)
-                                    c_tokens = usage.get("completion_tokens", 0)
-                                    t_tokens = usage.get("total_tokens", 0)
-                                    logger.info(f"[OpenRouter Token Usage] Stream ended. Model: {model_name} | Prompt: {p_tokens} | Completion: {c_tokens} | Total: {t_tokens}")
                                 if "choices" in data and len(data["choices"]) > 0:
                                     delta = data["choices"][0].get("delta", {}).get("content", "")
                                     if delta:
@@ -784,17 +998,14 @@ async def generate_llm_stream_async(
                                         yield f"data: {json.dumps({'content': delta})}\n\n"
                             except json.JSONDecodeError:
                                 continue
-
                     if emitted_chunk:
-                        _log_model_success(model_name)
+                        logger.info(f"[LLM FALLBACK SUCCESS] request_id={req_id} model={fallback_model}")
+                        logger.info(f"[LLM STATUS] request_id={req_id} status=SUCCESS model={fallback_model}")
                         return
-
-                    _log_model_failure(model_name, "empty stream")
-
         except Exception as e:
-            _log_model_failure(model_name, str(e))
-            continue
+            logger.error(f"[LLM FALLBACK FAILURE] request_id={req_id} model={fallback_model} error={_sanitize_error(str(e))}")
 
+    logger.error(f"[LLM STATUS] request_id={req_id} status=FAILED error=\"All OpenRouter stream models failed\"")
     yield f"data: {json.dumps({'error': 'All OpenRouter models failed'})}\n\n"
 
 

@@ -65,8 +65,13 @@ export function ChatWorkspace({
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const lastAiResponseRef = useRef<string | null>(null);
+  const executedPromptsRef = useRef<Set<string>>(new Set());
 
   const send = (text: string) => {
+    if (loading) {
+      console.warn("[ChatWorkspace] Send ignored because tutor is currently loading.");
+      return;
+    }
     const newMsg: Message = {
       id: crypto.randomUUID(),
       role: "user",
@@ -87,16 +92,18 @@ export function ChatWorkspace({
   };
 
   useEffect(() => {
-    if (initialPrompt && initialPrompt.trim()) {
-      const t = setTimeout(() => {
-        send(initialPrompt!.trim());
-      }, 120);
-      return () => clearTimeout(t);
+    if (!initialPrompt || !initialPrompt.trim()) return;
+    const trimmed = initialPrompt.trim();
+    if (executedPromptsRef.current.has(trimmed)) {
+      return;
     }
+    executedPromptsRef.current.add(trimmed);
+    send(trimmed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPrompt]);
 
   const handleRegenerate = () => {
+    if (loading) return;
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (lastUser) {
       send(lastUser.content);
@@ -179,10 +186,12 @@ export function ChatWorkspace({
                     <button
                       key={sub.name}
                       type="button"
+                      disabled={loading}
                       onClick={() => {
+                        if (loading) return;
                         send(`Explain ${sub.name}`);
                       }}
-                      className="pointer-events-auto flex items-center gap-4 px-5 py-4 bg-card hover:bg-secondary/40 border border-border/80 hover:border-primary/45 rounded-2xl shadow-sm hover:shadow-md transition-all hover:scale-103 active:scale-98 cursor-pointer text-left w-full group"
+                      className="pointer-events-auto flex items-center gap-4 px-5 py-4 bg-card hover:bg-secondary/40 border border-border/80 hover:border-primary/45 rounded-2xl shadow-sm hover:shadow-md transition-all hover:scale-103 active:scale-98 cursor-pointer text-left w-full group disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
                     >
                       <div className={`w-11 h-11 rounded-full ${sub.bg} ${sub.iconColor} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
                         <Icon className="w-5.5 h-5.5" />
@@ -208,7 +217,7 @@ export function ChatWorkspace({
                 topicTitle={topicTitle}
                 userQuery={userQuery}
                 onCopy={m.role === "ai" ? () => navigator.clipboard?.writeText(m.content) : undefined}
-                onRegenerate={m.role === "ai" ? handleRegenerate : undefined}
+                onRegenerate={m.role === "ai" && !loading ? handleRegenerate : undefined}
               />
             );
           })}

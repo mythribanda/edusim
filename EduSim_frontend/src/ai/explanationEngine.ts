@@ -180,6 +180,7 @@ export function useExplanationEngine(
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastRequestTimeRef = useRef<number>(0);
 
   const currentExplanation = queue[currentIndex] || null;
 
@@ -187,6 +188,12 @@ export function useExplanationEngine(
   useEffect(() => {
     const handleEvent = async (event: PhysicsEvent) => {
       if (dynamicEnabled) {
+        const now = Date.now();
+        if (now - lastRequestTimeRef.current < 15000) {
+          // Throttle simulation events to at most 1 AI explanation every 15 seconds
+          return;
+        }
+
         let { query, placeholderTitle, placeholderEffects } = getDynamicPromptAndPlaceholder(event, gravityMode);
         
         if (activeExampleName) {
@@ -217,12 +224,15 @@ export function useExplanationEngine(
         });
 
         if (isDup) return;
+        lastRequestTimeRef.current = now;
 
         // 2. Query FastAPI backend tutor endpoint
         try {
           const token = useAuthStore.getState().token;
+          const reqId = `req_sim_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
           const headers: Record<string, string> = {
             'Content-Type': 'application/json',
+            'X-Request-ID': reqId,
           };
           if (token) {
             headers['Authorization'] = `Bearer ${token}`;
@@ -231,7 +241,7 @@ export function useExplanationEngine(
           const resp = await fetch(getApiUrl('/api/tutor/explain-sim'), {
             method: 'POST',
             headers,
-            body: JSON.stringify({ query })
+            body: JSON.stringify({ query, request_id: reqId })
           });
           if (!resp.ok) throw new Error(`Backend response error: ${resp.status}`);
           const json = await resp.json();

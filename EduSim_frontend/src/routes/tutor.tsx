@@ -37,6 +37,20 @@ function TutorPage() {
   const { setTutorResponse } = useSimulationStore();
 
   const abortControllerRef = useRef<AbortController | undefined>(undefined);
+  const isAnalyzingRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      setTimeout(() => {
+        if (!isMountedRef.current) {
+          abortControllerRef.current?.abort();
+        }
+      }, 150);
+    };
+  }, []);
 
   const { data: topicContent, loading: topicLoading, fetchTopic } = useCurriculumTopic();
 
@@ -54,6 +68,13 @@ function TutorPage() {
   }, [searchParams, fetchTopic]);
 
   const handleAnalyze = async (query: string, history?: ChatMessage[]) => {
+    // Prevent duplicate execution while an analysis request is already in-flight
+    if (isAnalyzingRef.current) {
+      console.warn("[TutorPage] Analysis already in progress. Ignoring duplicate call.");
+      return;
+    }
+    isAnalyzingRef.current = true;
+
     // Cancel previous request if still pending
     abortControllerRef.current?.abort();
     const controller = new AbortController();
@@ -92,6 +113,7 @@ function TutorPage() {
         );
       }
     } finally {
+      isAnalyzingRef.current = false;
       setIsLoading(false);
       abortControllerRef.current = undefined;
     }

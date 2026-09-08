@@ -5,13 +5,18 @@ from typing import Any, Dict, Optional
 import jwt
 
 # SECRET_KEY for signing JWTs — must be set in the environment; no insecure fallback.
-_jwt_secret = os.getenv("JWT_SECRET_KEY")
+_jwt_secret = os.getenv("JWT_SECRET") or os.getenv("JWT_SECRET_KEY")
 if not _jwt_secret:
     raise RuntimeError(
-        "JWT_SECRET_KEY environment variable is not set. "
+        "Startup error: JWT_SECRET environment variable is missing. "
         "Generate one with: python -c 'import secrets; print(secrets.token_hex(32))'"
     )
-SECRET_KEY: str = _jwt_secret
+if len(_jwt_secret.strip()) < 32:
+    raise RuntimeError(
+        f"Startup error: JWT_SECRET is too short ({len(_jwt_secret.strip())} characters). "
+        "JWT_SECRET must be at least 32 characters long for cryptographic security."
+    )
+SECRET_KEY: str = _jwt_secret.strip()
 ALGORITHM = "HS256"
 
 # Access token expiry (e.g., 30 minutes)

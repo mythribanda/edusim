@@ -40,7 +40,7 @@ class RegisterRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=72)
-    role: str = Field("student", pattern="^(student|teacher)$")
+    role: str = Field("student", pattern="^(student|teacher|educator|admin)$")
     mobile_number: Optional[str] = None
 
     @model_validator(mode="before")
@@ -143,11 +143,19 @@ async def get_current_user(
             detail="Token is expired or invalid"
         )
     
-    user_id = payload.get("sub")
-    if not user_id:
+    user_id_raw = payload.get("sub")
+    if not user_id_raw:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token payload contains no user ID"
+        )
+    
+    try:
+        user_id = uuid.UUID(str(user_id_raw))
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID format in token"
         )
     
     user = db.query(User).filter(User.id == user_id).first()
@@ -301,6 +309,10 @@ def login(request: LoginRequest, http_request: Request, db: Session = Depends(ge
 @auth_router.post("/google", response_model=TokenResponse)
 def google_login(request: GoogleLoginRequest, http_request: Request, db: Session = Depends(get_db)):
     """Logs in or registers user using a Google ID token."""
+    # 0. Validate Supabase settings
+    from app.src.config.settings import validate_supabase_url
+    validate_supabase_url()
+
     # 1. Verify the ID Token
     if not GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID == "your-google-client-id-here.apps.googleusercontent.com":
         raise HTTPException(
@@ -420,7 +432,21 @@ def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
             detail="Invalid or expired refresh token"
         )
         
-    user_id = payload.get("sub")
+    user_id_raw = payload.get("sub")
+    if not user_id_raw:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token payload contains no user ID"
+        )
+
+    try:
+        user_id = uuid.UUID(str(user_id_raw))
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID format in token"
+        )
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(

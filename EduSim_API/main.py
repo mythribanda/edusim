@@ -7,11 +7,24 @@ sys.path.append(root_dir)
 from dotenv import load_dotenv
 load_dotenv()
 
-# CORS origins — set ALLOWED_ORIGINS as a comma-separated string in the environment.
-# Example: ALLOWED_ORIGINS=https://app.example.com,https://www.example.com
-# Defaults to localhost:8080 for local development.
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
-ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+# CORS configuration — allows Next.js teacher portal (port 3000), Vite/TanStack student portal (port 8080), and Vite dev server (port 5173).
+_default_origins = [
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:5173",
+]
+_env_origins = os.getenv("ALLOWED_ORIGINS")
+ALLOWED_ORIGINS: list[str] = list(_default_origins)
+if _env_origins:
+    ALLOWED_ORIGINS.extend([o.strip() for o in _env_origins.split(",") if o.strip()])
+for _url_env in ("FRONTEND_URL", "TEACHER_PORTAL_URL", "ADDITIONAL_CORS_ORIGINS"):
+    _val = os.getenv(_url_env)
+    if _val:
+        ALLOWED_ORIGINS.extend([o.strip() for o in _val.split(",") if o.strip()])
+ALLOWED_ORIGINS = sorted(list(set(ALLOWED_ORIGINS)))
 sys.path.append(os.path.join(root_dir, "app", "src", "modules"))
 sys.path.append(os.path.join(root_dir, "app", "src"))
 
@@ -28,6 +41,10 @@ from app.src.modules.sandbox.controller import sandbox_router
 from app.src.api.scene_router import scene_router
 from app.src.api.auth import auth_router
 from app.src.api.curriculum_router import router as curriculum_router
+from app.src.api.classes_router import router as classes_router
+from app.src.api.students_router import router as students_router
+from app.src.api.assignments_router import router as assignments_router
+from app.src.api.analytics_router import router as analytics_router
 
 from app.src.api.formula import router as generic_formula_router
 from app.src.api.questions import router as generic_questions_router
@@ -53,6 +70,10 @@ from app.src.modules.legacy_rag import vector_store
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Validate critical configuration on startup
+    from app.src.config.settings import validate_config
+    validate_config()
+
     # Preload FAISS globally
     vector_store.load_all()
     
@@ -70,7 +91,9 @@ async def lifespan(app: FastAPI):
             SimulationHistory,
             UserSetting,
             UserSession,
+            SessionEvent,
         )
+        from models import Class, TeacherClassSubject, StudentEnrollment, StudentTopicMastery, Assignment, Submission, Question  # Registers school & mastery models
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables initialized successfully.")
         
@@ -159,5 +182,15 @@ app.include_router(
 # --- Generic APIs for Formula Lab and Q&A ---
 app.include_router(generic_formula_router, prefix="/api/formula")
 app.include_router(generic_questions_router, prefix="/api/questions")
+app.include_router(generic_questions_router, prefix="/questions")
 app.include_router(persistence_router, prefix="/api/persistence")
 app.include_router(curriculum_router, prefix="/api")
+app.include_router(classes_router, prefix="/api")
+app.include_router(classes_router, prefix="")
+app.include_router(students_router, prefix="/api")
+app.include_router(students_router, prefix="")
+app.include_router(assignments_router, prefix="/api")
+app.include_router(assignments_router, prefix="")
+app.include_router(analytics_router, prefix="/api")
+app.include_router(analytics_router, prefix="")
+
